@@ -6,7 +6,7 @@
 
 ## Problem Statement
 
-Filipino gamers (and gaming enthusiasts more broadly, regardless of location) currently have no dedicated Game Ako Chronicles outlet for console/PC gaming news, reviews, commentary, and interviews — there is today no owned channel through which the stakeholder (Arohbi) and an internal contributor team can publish gaming content, moderate community discussion around it, and build an audience under this brand. This matters now because the stakeholder wants to launch this outlet from a ground-up position (no existing audience, traffic, or content), and every week without a publishing platform is a week the brand has no presence and no accumulating content or community to show for it.
+Filipino gamers (and gaming enthusiasts more broadly, regardless of location) currently have no dedicated Game Ako Chronicles outlet for console/PC gaming news, reviews, commentary, and interviews — there is today no owned channel through which Arohbi and any invited contributors can publish gaming content, moderate community discussion around it, and begin building an audience under this brand. This matters now because the stakeholder wants to launch this outlet from a ground-up position (no existing audience, traffic, or content), and every week without a publishing platform is a week the brand has no presence and no accumulating content or community to show for it.
 
 ## Affected Users & Stakeholders
 
@@ -16,7 +16,6 @@ Filipino gamers (and gaming enthusiasts more broadly, regardless of location) cu
   - **Moderators** (a role that can overlap with contributor or be separate) — need a way to review reported comments and remove inappropriate content or disable comments when necessary; currently have no moderation tooling. [source: intake.md]
 - **Stakeholders**:
   - **Arohbi** (the project's raiser, also acting as initial admin) — decides scope, funds/builds the site, provisions contributor access, and holds full administrative bypass authority (including comment-moderation threshold bypass). [source: intake.md]
-  - **[NEEDS CLARIFICATION: Are there other internal stakeholders (e.g., a wider team, business partners) beyond Arohbi who have decision power or funding interest in this project? Intake and research only name Arohbi.]**
 
 ## Goals
 
@@ -38,12 +37,12 @@ Filipino gamers (and gaming enthusiasts more broadly, regardless of location) cu
 
 ## Success Metrics
 
-- **Site is live and publicly reachable**, with at least one published article, at launch (baseline: 0 — no site exists today). [source: intake.md — qualitative/binary launch signal]
+- **Site is live and publicly reachable**, with at least one published article, for an initial soft launch shared with a small circle (baseline: 0 — no site exists today). [source: intake.md — qualitative/binary launch signal]
 - **Contributors can independently publish content** without developer intervention, using the in-app CRUD tooling (baseline: 0 contributors have any publishing tool today). [source: intake.md — qualitative]
 - **Comment moderation functions as designed**: reports flag comments, the configurable threshold triggers visibility for review, and admin bypass works, verified functionally before/at launch (baseline: no moderation system exists today). [source: intake.md, research.md — qualitative/functional signal]
 - **Publishing cadence sustained**: approximately 2–3 articles per week, matching the stakeholder's stated intent (baseline: 0 articles/week today, pre-launch). [source: research.md]
 - **Infrastructure stays within free-tier limits at initial launch**: Supabase (500 MB DB, 5 GB/month egress, 1 GB file storage, 50k MAUs) and Vercel Hobby, with no forced upgrade required in the first period post-launch (baseline: not yet measured — no live traffic exists to compare against). [source: research.md]
-- [NEEDS CLARIFICATION: No audience/engagement targets (e.g., visits, registered users, comments/week) have been defined — success today is scoped to "does the platform exist and function," not "does it attract an audience." Should audience-growth metrics be defined for a later stage (e.g., post-launch), since research confirmed there is no demand signal to project targets from?]
+- **Audience/engagement growth remains aspirational at this stage**: visits, registered users, and comment volume are intentionally not treated as launch-gating targets for the soft launch, and can be defined later once real post-launch usage data exists. [source: stakeholder clarification, research.md]
 
 ## Cost of Inaction
 
@@ -51,7 +50,4 @@ If this is never built, Game Ako Chronicles has no publishing platform at all: n
 
 ## Open Questions
 
-- [NEEDS CLARIFICATION: Are there other internal stakeholders (e.g., a wider team, business partners) beyond Arohbi with decision power or funding interest in this project?]
-- [NEEDS CLARIFICATION: No audience/engagement success metrics are defined yet (visits, registered users, comment volume) — should these be set now as aspirational targets, or deferred until there's real post-launch data, given the confirmed absence of any demand signal?]
-- [NEEDS CLARIFICATION: What counts as "launch" precisely — a soft/private launch to a small circle first, or a public launch with promotion? This affects how the above success metrics should be measured.]
-- [NEEDS CLARIFICATION: Differentiation strategy versus existing Filipino/international gaming media remains deferred by stakeholder choice — at what point (before or after launch) does this need to be revisited, given research flagged it as a risk to long-term traction?]
+- None for this problem definition at the current stage. Differentiation strategy remains explicitly deferred until after the initial site is live, since the present goal is simply to get the website launched and usable.
