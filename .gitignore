@@ -1,0 +1,25 @@
+# Node.js / Next.js
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+*.log
+.env*
+!.env.example
+
+# Supabase local state
+supabase/.temp/
+supabase/.branches/
+
+# Tooling and OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/

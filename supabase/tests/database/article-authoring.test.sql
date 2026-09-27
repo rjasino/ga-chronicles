@@ -1,0 +1,11 @@
+begin;
+select plan(4);
+select ok((select count(*) = 1 from public.articles where slug = 'a-new-chapter-for-independent-games' and status = 'published'), 'seeded article is published');
+select ok((select count(*) = 1 from public.articles where slug = 'private-preview-draft' and status = 'draft'), 'seeded draft remains private');
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+select lives_ok($$insert into public.articles (title,slug,body,type,status,author_id) values ('Policy draft','policy-draft','Draft body','news','draft',auth.uid())$$, 'contributor can create a draft');
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true);
+select throws_ok($$insert into public.articles (title,slug,body,type,status,author_id) values ('Denied draft','denied-draft','Draft body','news','draft',auth.uid())$$, '42501', null, 'moderator-only account cannot author');
+select * from finish();
+rollback;

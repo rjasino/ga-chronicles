@@ -1,0 +1,53 @@
+name: Web quality gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci --prefix apps/web
+      - run: npm --prefix apps/web run lint
+      - run: npm --prefix apps/web run typecheck
+      - run: npm --prefix apps/web run test:unit
+      - run: npm --prefix apps/web audit --audit-level=moderate
+
+  database-and-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: npm ci --prefix apps/web
+      - run: npx supabase start
+      - run: npx supabase db reset
+      - run: npx supabase test db
+      - run: |
+          status="$(npx supabase status -o env)"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$(printf '%s\n' "$status" | sed -n 's/^API_URL="\([^"]*\)"/\1/p')" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(printf '%s\n' "$status" | sed -n 's/^ANON_KEY="\([^"]*\)"/\1/p')" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(printf '%s\n' "$status" | sed -n 's/^SERVICE_ROLE_KEY="\([^"]*\)"/\1/p')" >> "$GITHUB_ENV"
+          echo "SITE_URL=http://127.0.0.1:3000" >> "$GITHUB_ENV"
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - run: npm run test:e2e
+        working-directory: apps/web
+      - run: npm run test:a11y
+        working-directory: apps/web
+      - if: always()
+        run: npx supabase stop --no-backup

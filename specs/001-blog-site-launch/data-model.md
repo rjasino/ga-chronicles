@@ -18,6 +18,8 @@ Represents a registered reader or internal team member linked to an authenticati
 
 Email and provider credentials are managed by the authentication provider, not copied into a public profile. Signup collects an email address to satisfy password-based provider authentication; username/password login resolves the username to the account identity server-side and uses a generic failure response.
 
+The implementation keeps the email-to-account lookup in a separate server-only table with row-level security enabled and no grants to browser roles. It is used only by trusted signup, provisioning, and sign-in actions; it is not exposed through public account/profile queries.
+
 ### Role and Account Role
 
 `Role` identifies a permission set: `reader`, `contributor`, `moderator`, or `admin`. `AccountRole` associates an account with a role.

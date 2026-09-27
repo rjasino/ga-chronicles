@@ -1,0 +1,10 @@
+begin;
+select plan(4);
+select ok((select count(*) = 2 from public.account_roles where account_id = '10000000-0000-4000-8000-000000000005'), 'fixture demonstrates additive roles');
+select ok(not public.has_role('admin', '10000000-0000-4000-8000-000000000003'), 'moderator is not an admin');
+select ok(public.has_role('contributor', '10000000-0000-4000-8000-000000000005') and public.has_role('moderator', '10000000-0000-4000-8000-000000000005'), 'multi-role grants are independent');
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+select throws_ok($$insert into public.account_roles (account_id,role) values ('10000000-0000-4000-8000-000000000001','moderator')$$, '42501', null, 'reader cannot grant roles');
+select * from finish();
+rollback;

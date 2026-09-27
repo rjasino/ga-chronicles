@@ -1,0 +1,17 @@
+begin;
+select plan(6);
+select ok((select moderation_report_threshold > 0 from public.site_settings where id), 'moderation threshold stays positive');
+select has_function('public', 'moderate_comment', array['uuid'], 'atomic moderator action exists');
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+insert into public.comments (id,article_id,author_id,body) values ('30000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000001',auth.uid(),'Needs a threshold review');
+insert into public.reports (comment_id,reporter_id) values ('30000000-0000-4000-8000-000000000002',auth.uid());
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true);
+select throws_ok($$select public.moderate_comment('30000000-0000-4000-8000-000000000002')$$, 'P0001', 'THRESHOLD_NOT_MET', 'moderator cannot act below the threshold');
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
+select is(public.moderate_comment('30000000-0000-4000-8000-000000000002'), true, 'admin can bypass the report threshold');
+select is(public.moderate_comment('30000000-0000-4000-8000-000000000002'), false, 'repeat moderation action is idempotent');
+reset role;
+select is((select status from public.comments where id = '30000000-0000-4000-8000-000000000002'), 'deleted', 'moderation deletes comment atomically');
+select * from finish();
+rollback;

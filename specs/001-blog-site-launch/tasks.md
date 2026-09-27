@@ -18,10 +18,10 @@
 
 **Purpose**: Create the Next.js application workspace and local Supabase/test tooling.
 
-- [ ] T001 Initialize the TypeScript Next.js App Router application and scripts in `apps/web/package.json`, `apps/web/tsconfig.json`, and `apps/web/src/app/layout.tsx` using the current supported Node.js LTS release.
-- [ ] T002 [P] Configure the local Supabase project, database ports, Auth service, and Storage service in `supabase/config.toml`.
-- [ ] T003 Configure ESLint and Prettier settings and commands in `apps/web/eslint.config.mjs`, `apps/web/.prettierrc.json`, and `apps/web/package.json`.
-- [ ] T004 Add Vitest, React Testing Library, Playwright, and accessibility-test dependencies and configuration in `apps/web/vitest.config.ts`, `apps/web/playwright.config.ts`, and `apps/web/package.json`.
+- [X] T001 Initialize the TypeScript Next.js App Router application and scripts in `apps/web/package.json`, `apps/web/tsconfig.json`, and `apps/web/src/app/layout.tsx` using the current supported Node.js LTS release.
+- [X] T002 [P] Configure the local Supabase project, database ports, Auth service, and Storage service in `supabase/config.toml`.
+- [X] T003 Configure ESLint and Prettier settings and commands in `apps/web/eslint.config.mjs`, `apps/web/.prettierrc.json`, and `apps/web/package.json`.
+- [X] T004 Add Vitest, React Testing Library, Playwright, and accessibility-test dependencies and configuration in `apps/web/vitest.config.ts`, `apps/web/playwright.config.ts`, and `apps/web/package.json`.
 
 ---
 
@@ -29,13 +29,13 @@
 
 **Purpose**: Establish verified Supabase access, common account/role/article/settings schema, and authorization foundations before story implementation.
 
-- [ ] T005 Define required server/browser environment variables and startup validation in `apps/web/.env.example` and `apps/web/src/lib/env.ts`; keep provider and service-role secrets server-only.
-- [ ] T006 Create cookie-aware server and browser Supabase clients and verified session accessors in `apps/web/src/lib/supabase/server.ts`, `apps/web/src/lib/supabase/client.ts`, and `apps/web/src/lib/supabase/session.ts`.
-- [ ] T007 [P] Write unit tests for additive reader/contributor/moderator/admin permissions and denial cases in `apps/web/tests/unit/authz/permissions.test.ts`.
-- [ ] T008 [P] Write pgTAP tests for account/role integrity and private draft access in `supabase/tests/database/core-schema.test.sql`.
-- [ ] T009 Create the core account, role, article, and site-setting schema in `supabase/migrations/0001_core_schema.sql` and preserve these field constraints verbatim: account `id` is “Stable identifier matching the authentication identity; required and unique,” `username` is “Required, normalized, unique login handle; never treated as a password or authorization claim,” `display_name` is “Optional name shown beside authored comments,” `status` is “Active or disabled; disabled accounts cannot sign in to protected features or create comments/reports,” and `created_at` is an “Account creation timestamp”; article `id` is a “Stable unique identifier,” `title` and `body` are “Required and non-empty after trimming,” body is “rendered safely as readable article content,” `slug` is a “Required, normalized, unique public route identifier,” `type` is one of news, review, commentary/opinion, or interview, `status` is “Draft, published, or removed; only published articles appear publicly,” `author_id` is a “Required reference to the account that authored the article,” `cover_image` is an “Optional reference to an associated stored image,” `published_at` is “Absent for drafts; set when published and refreshed on republish according to editorial behavior,” and `created_at`/`updated_at` are “Required timestamps”; site `comments_enabled` is “Required boolean; when false, new comment submissions are rejected and the public article page explains that comments are off,” `moderation_report_threshold` is a “Required positive integer,” `updated_by` is the “Admin account that last changed the settings,” and `updated_at` is a “Timestamp of the latest change.”
-- [ ] T010 Implement trusted server-side role checks and corresponding baseline RLS policies in `apps/web/src/lib/authz/permissions.ts` and `supabase/migrations/0001_core_schema.sql`, including additive role grants and admin-only role/settings management.
-- [ ] T011 Add local-only reader/contributor/moderator/admin/multi-role fixtures, one minimal published test article, and a safe first-admin bootstrap command in `supabase/seed.sql` and `apps/web/scripts/bootstrap-admin.ts`; do not put production credentials in source control.
+- [X] T005 Define required server/browser environment variables and startup validation in `apps/web/.env.example` and `apps/web/src/lib/env.ts`; keep provider and service-role secrets server-only.
+- [X] T006 Create cookie-aware server and browser Supabase clients and verified session accessors in `apps/web/src/lib/supabase/server.ts`, `apps/web/src/lib/supabase/client.ts`, and `apps/web/src/lib/supabase/session.ts`.
+- [X] T007 [P] Write unit tests for additive reader/contributor/moderator/admin permissions and denial cases in `apps/web/tests/unit/authz/permissions.test.ts`.
+- [X] T008 [P] Write pgTAP tests for account/role integrity and private draft access in `supabase/tests/database/core-schema.test.sql`.
+- [X] T009 Create the core account, role, article, and site-setting schema in `supabase/migrations/0001_core_schema.sql` and preserve these field constraints verbatim: account `id` is “Stable identifier matching the authentication identity; required and unique,” `username` is “Required, normalized, unique login handle; never treated as a password or authorization claim,” `display_name` is “Optional name shown beside authored comments,” `status` is “Active or disabled; disabled accounts cannot sign in to protected features or create comments/reports,” and `created_at` is an “Account creation timestamp”; article `id` is a “Stable unique identifier,” `title` and `body` are “Required and non-empty after trimming,” body is “rendered safely as readable article content,” `slug` is a “Required, normalized, unique public route identifier,” `type` is one of news, review, commentary/opinion, or interview, `status` is “Draft, published, or removed; only published articles appear publicly,” `author_id` is a “Required reference to the account that authored the article,” `cover_image` is an “Optional reference to an associated stored image,” `published_at` is “Absent for drafts; set when published and refreshed on republish according to editorial behavior,” and `created_at`/`updated_at` are “Required timestamps”; site `comments_enabled` is “Required boolean; when false, new comment submissions are rejected and the public article page explains that comments are off,” `moderation_report_threshold` is a “Required positive integer,” `updated_by` is the “Admin account that last changed the settings,” and `updated_at` is a “Timestamp of the latest change.”
+- [X] T010 Implement trusted server-side role checks and corresponding baseline RLS policies in `apps/web/src/lib/authz/permissions.ts` and `supabase/migrations/0001_core_schema.sql`, including additive role grants and admin-only role/settings management.
+- [X] T011 Add local-only reader/contributor/moderator/admin/multi-role fixtures, one minimal published test article, and a safe first-admin bootstrap command in `supabase/seed.sql` and `apps/web/scripts/bootstrap-admin.ts`; do not put production credentials in source control.
 
 **Checkpoint**: Local app and Supabase services start; core schema, verified sessions, role tests, and local fixtures are available. Story work can proceed.
 
@@ -49,17 +49,17 @@
 
 ### Tests for User Story 1
 
-- [ ] T012 [P] [US1] Add browser tests for anonymous article listing, detail reading, responsive readability, and draft denial in `apps/web/tests/e2e/public-articles.spec.ts`.
-- [ ] T013 [P] [US1] Add unit tests proving public article queries return only published records and handle missing slugs in `apps/web/tests/unit/articles/public-queries.test.ts`.
-- [ ] T014 [P] [US1] Add database policy tests proving anonymous users can read published articles but cannot read drafts in `supabase/tests/database/public-articles.test.sql`.
+- [X] T012 [P] [US1] Add browser tests for anonymous article listing, detail reading, responsive readability, and draft denial in `apps/web/tests/e2e/public-articles.spec.ts`.
+- [X] T013 [P] [US1] Add unit tests proving public article queries return only published records and handle missing slugs in `apps/web/tests/unit/articles/public-queries.test.ts`.
+- [X] T014 [P] [US1] Add database policy tests proving anonymous users can read published articles but cannot read drafts in `supabase/tests/database/public-articles.test.sql`.
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Add anonymous published-article SELECT policies and deny draft access in `supabase/migrations/0002_public_article_read_policies.sql`.
-- [ ] T016 [US1] Implement published article list/detail queries with explicit published-status filtering in `apps/web/src/features/articles/queries.ts`.
-- [ ] T017 [US1] Build the public article list and article cards with title links and image fallbacks in `apps/web/src/app/page.tsx` and `apps/web/src/components/articles/article-card.tsx`.
-- [ ] T018 [US1] Build the public slug route and readable full article body/image display in `apps/web/src/app/articles/[slug]/page.tsx` and `apps/web/src/components/articles/article-content.tsx`.
-- [ ] T019 [US1] Seed published and draft article examples with a local cover-image fixture in `supabase/seed.sql` and `apps/web/tests/fixtures/launch-article-cover.svg`.
+- [X] T015 [US1] Add anonymous published-article SELECT policies and deny draft access in `supabase/migrations/0002_public_article_read_policies.sql`.
+- [X] T016 [US1] Implement published article list/detail queries with explicit published-status filtering in `apps/web/src/features/articles/queries.ts`.
+- [X] T017 [US1] Build the public article list and article cards with title links and image fallbacks in `apps/web/src/app/page.tsx` and `apps/web/src/components/articles/article-card.tsx`.
+- [X] T018 [US1] Build the public slug route and readable full article body/image display in `apps/web/src/app/articles/[slug]/page.tsx` and `apps/web/src/components/articles/article-content.tsx`.
+- [X] T019 [US1] Seed published and draft article examples with a local cover-image fixture in `supabase/seed.sql` and `apps/web/tests/fixtures/launch-article-cover.svg`.
 
 **Checkpoint**: User Story 1 is independently testable with seeded content and no signed-in account.
 
@@ -73,18 +73,18 @@
 
 ### Tests for User Story 2
 
-- [ ] T020 [P] [US2] Add unit tests for article title/body validation, allowed content types, and draft preservation in `apps/web/tests/unit/articles/article-validation.test.ts`.
-- [ ] T021 [P] [US2] Add browser tests for contributor draft creation, preview, edit, publish, republish, invalid input, and moderator denial in `apps/web/tests/e2e/contributor-publishing.spec.ts`.
-- [ ] T022 [P] [US2] Add pgTAP tests for contributor/admin write access and moderator/reader write denial in `supabase/tests/database/article-authoring.test.sql`.
+- [X] T020 [P] [US2] Add unit tests for article title/body validation, allowed content types, and draft preservation in `apps/web/tests/unit/articles/article-validation.test.ts`.
+- [X] T021 [P] [US2] Add browser tests for contributor draft creation, preview, edit, publish, republish, invalid input, and moderator denial in `apps/web/tests/e2e/contributor-publishing.spec.ts`.
+- [X] T022 [P] [US2] Add pgTAP tests for contributor/admin write access and moderator/reader write denial in `supabase/tests/database/article-authoring.test.sql`.
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Add contributor/admin article insert and update policies, restrict contributor edits to their own `author_id`, and keep moderator-only accounts read/delete-only in `supabase/migrations/0003_article-authoring-policies.sql`.
-- [ ] T024 [US2] Implement shared article input validation in `apps/web/src/features/articles/schema.ts`, enforcing “Required and non-empty after trimming” for `title` and `body` and the four allowed `type` values.
-- [ ] T025 [US2] Implement server-verified create, update, preview-data, publish, and republish actions; reject unauthorized writers and preserve invalid drafts in `apps/web/src/features/articles/actions.ts`.
-- [ ] T026 [US2] Build the contributor article dashboard and create/edit forms in `apps/web/src/app/admin/articles/page.tsx`, `apps/web/src/app/admin/articles/new/page.tsx`, and `apps/web/src/app/admin/articles/[id]/edit/page.tsx`.
-- [ ] T027 [US2] Build private draft preview and revalidate public article paths after publish/edit in `apps/web/src/app/admin/articles/[id]/preview/page.tsx` and `apps/web/src/features/articles/actions.ts`.
-- [ ] T028 [US2] Run the article unit, database, and browser suites and resolve failures in `apps/web/tests/unit/articles/article-validation.test.ts`, `supabase/tests/database/article-authoring.test.sql`, and `apps/web/tests/e2e/contributor-publishing.spec.ts`.
+- [X] T023 [US2] Add contributor/admin article insert and update policies, restrict contributor edits to their own `author_id`, and keep moderator-only accounts read/delete-only in `supabase/migrations/0003_article-authoring-policies.sql`.
+- [X] T024 [US2] Implement shared article input validation in `apps/web/src/features/articles/schema.ts`, enforcing “Required and non-empty after trimming” for `title` and `body` and the four allowed `type` values.
+- [X] T025 [US2] Implement server-verified create, update, preview-data, publish, and republish actions; reject unauthorized writers and preserve invalid drafts in `apps/web/src/features/articles/actions.ts`.
+- [X] T026 [US2] Build the contributor article dashboard and create/edit forms in `apps/web/src/app/admin/articles/page.tsx`, `apps/web/src/app/admin/articles/new/page.tsx`, and `apps/web/src/app/admin/articles/[id]/edit/page.tsx`.
+- [X] T027 [US2] Build private draft preview and revalidate public article paths after publish/edit in `apps/web/src/app/admin/articles/[id]/preview/page.tsx` and `apps/web/src/features/articles/actions.ts`.
+- [X] T028 [US2] Run the article unit, database, and browser suites and resolve failures in `apps/web/tests/unit/articles/article-validation.test.ts`, `supabase/tests/database/article-authoring.test.sql`, and `apps/web/tests/e2e/contributor-publishing.spec.ts`.
 
 **Checkpoint**: User Story 2 works using a seeded contributor and can be verified without completing reader signup or account provisioning.
 
@@ -98,20 +98,20 @@
 
 ### Tests for User Story 3
 
-- [ ] T029 [P] [US3] Add unit tests for normalized blocked-word matching, non-empty comment validation, and permitted comment text in `apps/web/tests/unit/comments/blocked-words.test.ts`.
-- [ ] T030 [P] [US3] Add browser tests for username/password signup/sign-in, Google OAuth callback handling, retryable failures, and non-enumerating credential errors in `apps/web/tests/e2e/reader-auth.spec.ts`.
-- [ ] T031 [P] [US3] Add browser tests for accepted/rejected comments, public visibility, report submission, and duplicate reports counting once without hiding the comment in `apps/web/tests/e2e/comments.spec.ts`.
-- [ ] T032 [P] [US3] Add pgTAP tests for comment/report access and unique reporter/comment pairs in `supabase/tests/database/comments-reports.test.sql`.
+- [X] T029 [P] [US3] Add unit tests for normalized blocked-word matching, non-empty comment validation, and permitted comment text in `apps/web/tests/unit/comments/blocked-words.test.ts`.
+- [X] T030 [P] [US3] Add browser tests for username/password signup/sign-in, Google OAuth callback handling, retryable failures, and non-enumerating credential errors in `apps/web/tests/e2e/reader-auth.spec.ts`.
+- [X] T031 [P] [US3] Add browser tests for accepted/rejected comments, public visibility, report submission, and duplicate reports counting once without hiding the comment in `apps/web/tests/e2e/comments.spec.ts`.
+- [X] T032 [P] [US3] Add pgTAP tests for comment/report access and unique reporter/comment pairs in `supabase/tests/database/comments-reports.test.sql`.
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Create comment, report, and blocked-word tables in `supabase/migrations/0004_comments-and-reports.sql` and preserve these constraints verbatim: comment `id` is a “Stable unique identifier,” `article_id` a “Required reference to a published article,” `author_id` a “Required reference to an active signed-in account,” `body` is “Required, non-empty after trimming, and rejected/withheld if it contains a blocked term,” `status` is “Visible or deleted; a report alone does not change visibility,” and timestamps are “Required timestamps”; report `id` is a “Stable unique identifier,” `comment_id` a “Required reference to a non-deleted comment,” `reporter_id` a “Required reference to an active signed-in account,” `reason` is “Optional short category/text if collected by the interface,” `created_at` is a “Required timestamp,” and (`comment_id`, `reporter_id`) is unique; blocked-word `id` is a “Stable unique identifier,” `term` is a “Required normalized matching term; unique under the matching normalization rules,” and `enabled` “Allows a term to be disabled without deleting history/configuration.”
-- [ ] T034 [US3] Implement username/email/password signup and username/password sign-in with server-side identity lookup and generic failure responses in `apps/web/src/features/auth/actions.ts`.
-- [ ] T035 [US3] Build signup/sign-in forms and the Supabase Google OAuth start/callback flow in `apps/web/src/app/sign-up/page.tsx`, `apps/web/src/app/sign-in/page.tsx`, and `apps/web/src/app/auth/callback/route.ts`.
-- [ ] T036 [US3] Implement deterministic server-side blocked-word normalization and matching for the static list in `apps/web/src/features/comments/blocked-words.ts`.
-- [ ] T037 [US3] Implement authenticated comment/report actions, enforcing the global comments-enabled setting, one report per user/comment, and non-public rejection of blocked text in `apps/web/src/features/comments/actions.ts`.
-- [ ] T038 [US3] Add RLS policies for signed-in comment creation, visible-comment reading, and report insertion without automatic comment hiding in `supabase/migrations/0004_comments-and-reports.sql`.
-- [ ] T039 [US3] Build the article comment list/form and report controls with plain-language errors and preserved text after failed submission in `apps/web/src/components/comments/comment-section.tsx` and `apps/web/src/components/comments/comment-form.tsx`.
+- [X] T033 [US3] Create comment, report, and blocked-word tables in `supabase/migrations/0004_comments-and-reports.sql` and preserve these constraints verbatim: comment `id` is a “Stable unique identifier,” `article_id` a “Required reference to a published article,” `author_id` a “Required reference to an active signed-in account,” `body` is “Required, non-empty after trimming, and rejected/withheld if it contains a blocked term,” `status` is “Visible or deleted; a report alone does not change visibility,” and timestamps are “Required timestamps”; report `id` is a “Stable unique identifier,” `comment_id` a “Required reference to a non-deleted comment,” `reporter_id` a “Required reference to an active signed-in account,” `reason` is “Optional short category/text if collected by the interface,” `created_at` is a “Required timestamp,” and (`comment_id`, `reporter_id`) is unique; blocked-word `id` is a “Stable unique identifier,” `term` is a “Required normalized matching term; unique under the matching normalization rules,” and `enabled` “Allows a term to be disabled without deleting history/configuration.”
+- [X] T034 [US3] Implement username/email/password signup and username/password sign-in with server-side identity lookup and generic failure responses in `apps/web/src/features/auth/actions.ts`.
+- [X] T035 [US3] Build signup/sign-in forms and the Supabase Google OAuth start/callback flow in `apps/web/src/app/sign-up/page.tsx`, `apps/web/src/app/sign-in/page.tsx`, and `apps/web/src/app/auth/callback/route.ts`.
+- [X] T036 [US3] Implement deterministic server-side blocked-word normalization and matching for the static list in `apps/web/src/features/comments/blocked-words.ts`.
+- [X] T037 [US3] Implement authenticated comment/report actions, enforcing the global comments-enabled setting, one report per user/comment, and non-public rejection of blocked text in `apps/web/src/features/comments/actions.ts`.
+- [X] T038 [US3] Add RLS policies for signed-in comment creation, visible-comment reading, and report insertion without automatic comment hiding in `supabase/migrations/0004_comments-and-reports.sql`.
+- [X] T039 [US3] Build the article comment list/form and report controls with plain-language errors and preserved text after failed submission in `apps/web/src/components/comments/comment-section.tsx` and `apps/web/src/components/comments/comment-form.tsx`.
 
 **Checkpoint**: User Story 3 is independently testable with a published seeded article and test accounts; reports are visible as flags but do not hide comments.
 
@@ -125,17 +125,17 @@
 
 ### Tests for User Story 4
 
-- [ ] T040 [P] [US4] Add unit tests for positive threshold validation, unique report counts, moderator eligibility, admin bypass, and repeat concurrent moderation in `apps/web/tests/unit/moderation/threshold.test.ts`.
-- [ ] T041 [P] [US4] Add browser tests for review queue states, moderator comment/article removal and threshold, admin bypass, global comment toggle, and a submission racing with the toggle in `apps/web/tests/e2e/moderation.spec.ts`.
-- [ ] T042 [P] [US4] Add pgTAP tests proving moderator threshold enforcement and admin bypass/toggle privileges in `supabase/tests/database/moderation.test.sql`.
+- [X] T040 [P] [US4] Add unit tests for positive threshold validation, unique report counts, moderator eligibility, admin bypass, and repeat concurrent moderation in `apps/web/tests/unit/moderation/threshold.test.ts`.
+- [X] T041 [P] [US4] Add browser tests for review queue states, moderator comment/article removal and threshold, admin bypass, global comment toggle, and a submission racing with the toggle in `apps/web/tests/e2e/moderation.spec.ts`.
+- [X] T042 [P] [US4] Add pgTAP tests proving moderator threshold enforcement and admin bypass/toggle privileges in `supabase/tests/database/moderation.test.sql`.
 
 ### Implementation for User Story 4
 
-- [ ] T043 [US4] Add atomic moderation database actions that lock the comment, enforce the configured unique-report threshold for moderators, allow admin bypass, and make concurrent deletion idempotent in `supabase/migrations/0005_moderation-actions.sql`.
-- [ ] T044 [US4] Implement the review-queue query with total unique reports and separate “flagged” versus “actionable” state in `apps/web/src/features/moderation/queries.ts`.
-- [ ] T045 [US4] Implement moderator/admin comment and content removal actions with clear already-handled responses in `apps/web/src/features/moderation/actions.ts`.
-- [ ] T046 [US4] Build the flagged-comment queue and role-appropriate review actions in `apps/web/src/app/admin/moderation/page.tsx` and `apps/web/src/components/moderation/review-queue.tsx`.
-- [ ] T047 [US4] Build admin controls for the positive report threshold and global comments toggle in `apps/web/src/app/admin/settings/comments/page.tsx` and `apps/web/src/features/moderation/settings-actions.ts`.
+- [X] T043 [US4] Add atomic moderation database actions that lock the comment, enforce the configured unique-report threshold for moderators, allow admin bypass, and make concurrent deletion idempotent in `supabase/migrations/0005_moderation-actions.sql`.
+- [X] T044 [US4] Implement the review-queue query with total unique reports and separate “flagged” versus “actionable” state in `apps/web/src/features/moderation/queries.ts`.
+- [X] T045 [US4] Implement moderator/admin comment and content removal actions with clear already-handled responses in `apps/web/src/features/moderation/actions.ts`.
+- [X] T046 [US4] Build the flagged-comment queue and role-appropriate review actions in `apps/web/src/app/admin/moderation/page.tsx` and `apps/web/src/components/moderation/review-queue.tsx`.
+- [X] T047 [US4] Build admin controls for the positive report threshold and global comments toggle in `apps/web/src/app/admin/settings/comments/page.tsx` and `apps/web/src/features/moderation/settings-actions.ts`.
 
 **Checkpoint**: User Story 4 passes threshold, admin bypass, concurrency, visibility, and comments-disabled scenarios independently of the internal account-provisioning UI.
 
@@ -149,18 +149,18 @@
 
 ### Tests for User Story 5
 
-- [ ] T048 [P] [US5] Add unit tests for additive multi-role grants, restricted role combinations, username uniqueness, and password-change validation in `apps/web/tests/unit/admin/account-management.test.ts`.
-- [ ] T049 [P] [US5] Add browser tests for internal account provisioning, default-password sign-in/change, role assignment/revocation, and role-specific denials in `apps/web/tests/e2e/admin-accounts.spec.ts`.
-- [ ] T050 [P] [US5] Add pgTAP tests proving only admins can create internal accounts or grant/revoke roles in `supabase/tests/database/account-roles.test.sql`.
+- [X] T048 [P] [US5] Add unit tests for additive multi-role grants, restricted role combinations, username uniqueness, and password-change validation in `apps/web/tests/unit/admin/account-management.test.ts`.
+- [X] T049 [P] [US5] Add browser tests for internal account provisioning, default-password sign-in/change, role assignment/revocation, and role-specific denials in `apps/web/tests/e2e/admin-accounts.spec.ts`.
+- [X] T050 [P] [US5] Add pgTAP tests proving only admins can create internal accounts or grant/revoke roles in `supabase/tests/database/account-roles.test.sql`.
 
 ### Implementation for User Story 5
 
-- [ ] T051 [US5] Add database policies and constraints ensuring only admins can grant/revoke role assignments and username remains normalized and unique in `supabase/migrations/0006_admin-account-policies.sql`.
-- [ ] T052 [US5] Implement server-only internal account provisioning through Supabase Auth, default-password assignment, unique username checks, and multi-role grants without logging credentials in `apps/web/src/features/admin/account-actions.ts`.
-- [ ] T053 [US5] Build the admin account list and create-account form with contributor/moderator role selection and no public contributor signup in `apps/web/src/app/admin/users/page.tsx` and `apps/web/src/app/admin/users/new/page.tsx`.
-- [ ] T054 [US5] Implement admin role grant/revoke controls with explicit permission checks and confirmation feedback in `apps/web/src/components/admin/role-assignment-form.tsx` and `apps/web/src/features/admin/account-actions.ts`.
-- [ ] T055 [US5] Implement signed-in password change for provisioned account holders in `apps/web/src/app/account/password/page.tsx` and `apps/web/src/features/auth/password-actions.ts`.
-- [ ] T056 [US5] Run account-management unit, database, and browser suites and resolve failures in `apps/web/tests/unit/admin/account-management.test.ts`, `supabase/tests/database/account-roles.test.sql`, and `apps/web/tests/e2e/admin-accounts.spec.ts`.
+- [X] T051 [US5] Add database policies and constraints ensuring only admins can grant/revoke role assignments and username remains normalized and unique in `supabase/migrations/0006_admin-account-policies.sql`.
+- [X] T052 [US5] Implement server-only internal account provisioning through Supabase Auth, default-password assignment, unique username checks, and multi-role grants without logging credentials in `apps/web/src/features/admin/account-actions.ts`.
+- [X] T053 [US5] Build the admin account list and create-account form with contributor/moderator role selection and no public contributor signup in `apps/web/src/app/admin/users/page.tsx` and `apps/web/src/app/admin/users/new/page.tsx`.
+- [X] T054 [US5] Implement admin role grant/revoke controls with explicit permission checks and confirmation feedback in `apps/web/src/components/admin/role-assignment-form.tsx` and `apps/web/src/features/admin/account-actions.ts`.
+- [X] T055 [US5] Implement signed-in password change for provisioned account holders in `apps/web/src/app/account/password/page.tsx` and `apps/web/src/features/auth/password-actions.ts`.
+- [X] T056 [US5] Run account-management unit, database, and browser suites and resolve failures in `apps/web/tests/unit/admin/account-management.test.ts`, `supabase/tests/database/account-roles.test.sql`, and `apps/web/tests/e2e/admin-accounts.spec.ts`.
 
 **Checkpoint**: User Story 5 independently provisions a new internal user and proves that multiple grants combine without granting unauthorized actions.
 
@@ -174,16 +174,16 @@
 
 ### Tests for User Story 6
 
-- [ ] T057 [P] [US6] Add Playwright viewport tests for public/article navigation and no horizontal overflow at mobile and desktop widths in `apps/web/tests/e2e/responsive-branding.spec.ts`.
-- [ ] T058 [P] [US6] Add automated axe accessibility checks for representative public, sign-in, authoring, and moderation screens in `apps/web/tests/e2e/accessibility.spec.ts`.
+- [X] T057 [P] [US6] Add Playwright viewport tests for public/article navigation and no horizontal overflow at mobile and desktop widths in `apps/web/tests/e2e/responsive-branding.spec.ts`.
+- [X] T058 [P] [US6] Add automated axe accessibility checks for representative public, sign-in, authoring, and moderation screens in `apps/web/tests/e2e/accessibility.spec.ts`.
 
 ### Implementation for User Story 6
 
-- [ ] T059 [US6] Copy `docs/neon-GA trans-01.png`, `docs/neon_ga_logo_2.png`, and `docs/neon-GA-01.png` to `apps/web/public/brand/neon-GA-trans-01.png`, `apps/web/public/brand/neon_ga_logo_2.png`, and `apps/web/public/brand/neon-GA-01.png` respectively.
-- [ ] T060 [US6] Define reusable blue/red/yellow/white base and pink/gold accent tokens with flat matte surfaces and readable contrast in `apps/web/src/app/globals.css`.
-- [ ] T061 [US6] Build consistent responsive header, footer, logo treatment, and public/editorial navigation in `apps/web/src/components/site-header.tsx`, `apps/web/src/components/site-footer.tsx`, and `apps/web/src/app/layout.tsx`.
-- [ ] T062 [US6] Apply responsive article typography, image sizing, form layouts, focus indicators, and keyboard-accessible navigation to `apps/web/src/components/articles/article-content.tsx`, `apps/web/src/components/comments/comment-section.tsx`, and `apps/web/src/app/globals.css`.
-- [ ] T063 [US6] Run responsive and accessibility browser checks and resolve findings in `apps/web/tests/e2e/responsive-branding.spec.ts` and `apps/web/tests/e2e/accessibility.spec.ts`.
+- [X] T059 [US6] Copy `docs/neon-GA trans-01.png`, `docs/neon_ga_logo_2.png`, and `docs/neon-GA-01.png` to `apps/web/public/brand/neon-GA-trans-01.png`, `apps/web/public/brand/neon_ga_logo_2.png`, and `apps/web/public/brand/neon-GA-01.png` respectively.
+- [X] T060 [US6] Define reusable blue/red/yellow/white base and pink/gold accent tokens with flat matte surfaces and readable contrast in `apps/web/src/app/globals.css`.
+- [X] T061 [US6] Build consistent responsive header, footer, logo treatment, and public/editorial navigation in `apps/web/src/components/site-header.tsx`, `apps/web/src/components/site-footer.tsx`, and `apps/web/src/app/layout.tsx`.
+- [X] T062 [US6] Apply responsive article typography, image sizing, form layouts, focus indicators, and keyboard-accessible navigation to `apps/web/src/components/articles/article-content.tsx`, `apps/web/src/components/comments/comment-section.tsx`, and `apps/web/src/app/globals.css`.
+- [X] T063 [US6] Run responsive and accessibility browser checks and resolve findings in `apps/web/tests/e2e/responsive-branding.spec.ts` and `apps/web/tests/e2e/accessibility.spec.ts`.
 
 **Checkpoint**: User Story 6 is verified across the main page types without requiring analytics or broad user-research instrumentation.
 
@@ -193,11 +193,11 @@
 
 **Purpose**: Validate release readiness across stories, constitution gates, and the hosting constraints.
 
-- [ ] T064 [P] Add CI jobs for lint, type checking, unit, database, browser, and accessibility tests in `.github/workflows/ci.yml` and `apps/web/package.json`.
-- [ ] T065 Record a repeatable public-page Core Web Vitals procedure and measured pre-launch baseline against plan targets in `docs/operations/performance-baseline.md`.
-- [ ] T066 Complete a dependency/security review, document findings and remediation, and verify no provider/service secrets are client-exposed in `docs/operations/security-review.md` and `apps/web/package.json`.
-- [ ] T067 Document Vercel Hobby eligibility verification, Supabase quota monitoring, backup/recovery, and upgrade decision steps in `docs/operations/launch-checklist.md`.
-- [ ] T068 Execute every applicable setup, test, and end-to-end scenario in `specs/001-blog-site-launch/quickstart.md` and update that file with verified commands/results.
+- [X] T064 [P] Add CI jobs for lint, type checking, unit, database, browser, and accessibility tests in `.github/workflows/ci.yml` and `apps/web/package.json`.
+- [X] T065 Record a repeatable public-page Core Web Vitals procedure and measured pre-launch baseline against plan targets in `docs/operations/performance-baseline.md`.
+- [X] T066 Complete a dependency/security review, document findings and remediation, and verify no provider/service secrets are client-exposed in `docs/operations/security-review.md` and `apps/web/package.json`.
+- [X] T067 Document Vercel Hobby eligibility verification, Supabase quota monitoring, backup/recovery, and upgrade decision steps in `docs/operations/launch-checklist.md`.
+- [X] T068 Execute every applicable setup, test, and end-to-end scenario in `specs/001-blog-site-launch/quickstart.md` and update that file with verified commands/results.
 
 ---
 
