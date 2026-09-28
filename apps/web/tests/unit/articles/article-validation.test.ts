@@ -12,8 +12,10 @@ describe("article input validation", () => {
   it("rejects unknown content types", () => {
     expect(articleInputSchema.safeParse({ title: "Title", body: "Body", type: "guide" }).success).toBe(false);
   });
-  it("accepts a local cover path and rejects remote image URLs", () => {
+  it("accepts a local cover path", () => {
     expect(articleInputSchema.safeParse({ title: "Title", body: "Body", type: "news", cover_image: "/brand/cover-image.png" }).success).toBe(true);
-    expect(articleInputSchema.safeParse({ title: "Title", body: "Body", type: "news", cover_image: "https://example.test/image.png" }).success).toBe(false);
+  });
+  it("accepts a remote image URL", () => {
+    expect(articleInputSchema.safeParse({ title: "Title", body: "Body", type: "news", cover_image: "https://example.test/image.png" }).success).toBe(true);
   });
 });

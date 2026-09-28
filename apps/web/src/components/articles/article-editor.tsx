@@ -9,7 +9,7 @@ export function ArticleEditor({ article }: { article?: Article | null }) {
   const [title, setTitle] = useState(article?.title ?? "");
   const [body, setBody] = useState(article?.body ?? "");
   const [type, setType] = useState(article?.type ?? "news");
-  const [coverImage, setCoverImage] = useState(article?.cover_image ?? "");
+  const [coverImage, setCoverImage] = useState(article?.cover_image ?? "/brand/cover.jpg");
   const [state, action, pending] = useActionState(saveArticle, {
     articleId: article?.id,
     title,

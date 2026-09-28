@@ -6,10 +6,24 @@ import { getVerifiedSession } from "@/lib/supabase/session";
 import { can } from "@/lib/authz/permissions";
 import { articleInputSchema } from "@/features/articles/schema";
 
-export type EditorState = { error?: string; message?: string; articleId?: string; title?: string; body?: string; type?: string };
+export type EditorState = {
+  error?: string;
+  message?: string;
+  articleId?: string;
+  title?: string;
+  body?: string;
+  type?: string;
+};
 
 function slugFor(title: string) {
-  return title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `story-${Date.now()}`;
+  return (
+    title
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || `story-${Date.now()}`
+  );
 }
 
 export async function saveArticle(_state: EditorState, formData: FormData): Promise<EditorState> {
@@ -17,14 +31,20 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
     title: String(formData.get("title") ?? ""),
     body: String(formData.get("body") ?? ""),
     type: String(formData.get("type") ?? "news"),
-    cover_image: String(formData.get("cover_image") ?? ""),
+    cover_image: String(formData.get("cover_image") ?? "").trim() || "",
   };
   const articleId = String(formData.get("articleId") ?? "");
   const intent = String(formData.get("intent") ?? "draft");
   const session = await getVerifiedSession();
-  if (!session || !can(session.roles, "publish")) return { error: "You do not have permission to publish articles.", ...values, articleId };
+  if (!session || !can(session.roles, "publish"))
+    return { error: "You do not have permission to publish articles.", ...values, articleId };
   const parsed = articleInputSchema.safeParse(values);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the article details.", ...values, articleId };
+  if (!parsed.success)
+    return {
+      error: parsed.error.issues[0]?.message ?? "Check the article details.",
+      ...values,
+      articleId,
+    };
 
   const supabase = await createClient();
   const payload = {
@@ -38,18 +58,35 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
     ...(articleId ? {} : { author_id: session.userId }),
   };
   const result = articleId
-    ? await supabase.from("articles").update(payload).eq("id", articleId).select("id,slug").maybeSingle()
+    ? await supabase
+        .from("articles")
+        .update(payload)
+        .eq("id", articleId)
+        .select("id,slug")
+        .maybeSingle()
     : await supabase.from("articles").insert(payload).select("id,slug").single();
-  if (result.error || !result.data) return { error: "Could not save this article. Check the title is unique and try again.", ...values, articleId };
+  if (result.error || !result.data)
+    return {
+      error: "Could not save this article. Check the title is unique and try again.",
+      ...values,
+      articleId,
+    };
   revalidatePath("/");
   revalidatePath(`/articles/${result.data.slug}`);
   revalidatePath("/admin/articles");
-  return { articleId: result.data.id, message: intent === "publish" ? "Article published." : "Draft saved.", ...values };
+  return {
+    articleId: result.data.id,
+    message: intent === "publish" ? "Article published." : "Draft saved.",
+    ...values,
+  };
 }
 
 export async function getAuthorArticles() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("articles").select("id,title,slug,status,updated_at").order("updated_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("articles")
+    .select("id,title,slug,status,updated_at")
+    .order("updated_at", { ascending: false });
   if (error) throw new Error("Could not load your articles.", { cause: error });
   return data ?? [];
 }
