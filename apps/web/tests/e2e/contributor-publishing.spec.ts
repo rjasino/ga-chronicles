@@ -10,6 +10,7 @@ test("contributors can preserve, preview, and publish drafts", async ({ page }) 
   const title = `A browser-tested story ${Date.now()}`;
   await page.getByLabel("Title").fill(title);
   await page.getByLabel("Article body").fill("An opening paragraph for readers.");
+  await page.getByLabel("Cover image").setInputFiles("public/brand/neon_ga_logo_2.png");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText(/draft saved/i)).toBeVisible();
 
@@ -17,6 +18,7 @@ test("contributors can preserve, preview, and publish drafts", async ({ page }) 
   await page.goto(`/admin/articles/${articleId}/preview`);
   await expect(page.getByText(/private preview/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.locator(".story__cover img")).toBeVisible();
 
   await page.goto(`/admin/articles/${articleId}/edit`);
   await page.getByLabel("Article body").fill(" ");
@@ -36,6 +38,17 @@ test("contributors can preserve, preview, and publish drafts", async ({ page }) 
   await page.goto(`/articles/${title.toLowerCase().replaceAll(" ", "-")}`);
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
   await expect(page.getByText("A revised paragraph after editorial review.")).toBeVisible();
+  await expect(page.locator(".story__cover img")).toBeVisible();
+
+  await page.goto(`/admin/articles/${articleId}/edit`);
+  await page.getByLabel("Remove current cover image").check();
+  const removeCoverResponse = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes(`/admin/articles/${articleId}/edit`));
+  await page.getByRole("button", { name: "Publish" }).click();
+  await removeCoverResponse;
+  await expect(page.getByText(/article published/i)).toBeVisible();
+  await page.goto(`/articles/${title.toLowerCase().replaceAll(" ", "-")}`);
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await expect(page.locator(".story__cover img")).toHaveCount(0);
 });
 
 test("moderator-only accounts cannot author articles", async ({ page }) => {

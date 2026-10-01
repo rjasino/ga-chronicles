@@ -1,13 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Article } from "@/features/articles/queries";
+import { isLocalArticleCoverUrl } from "@/features/articles/article-cover";
 
 export function ArticleCard({ article }: { article: Article }) {
   return (
     <article className="article-card">
       <div className="article-card__image">
         {article.cover_image ? (
-          <Image src={article.cover_image} alt="" fill sizes="(max-width: 700px) 100vw, 50vw" />
+          <Image src={article.cover_image} alt="" fill sizes="(max-width: 700px) 100vw, 50vw" unoptimized={isLocalArticleCoverUrl(article.cover_image, process.env.NEXT_PUBLIC_SUPABASE_URL ?? "")} />
         ) : <span className="image-fallback" aria-hidden="true">GA</span>}
       </div>
       <div className="article-card__copy">

@@ -9,7 +9,6 @@ export function ArticleEditor({ article }: { article?: Article | null }) {
   const [title, setTitle] = useState(article?.title ?? "");
   const [body, setBody] = useState(article?.body ?? "");
   const [type, setType] = useState(article?.type ?? "news");
-  const [coverImage, setCoverImage] = useState(article?.cover_image ?? "/brand/cover.jpg");
   const [state, action, pending] = useActionState(saveArticle, {
     articleId: article?.id,
     title,
@@ -22,7 +21,12 @@ export function ArticleEditor({ article }: { article?: Article | null }) {
     <input type="hidden" name="articleId" value={articleId} />
     <label>Title<input name="title" required value={title} onChange={(event) => setTitle(event.target.value)} /></label>
     <label>Article type<select name="type" value={type} onChange={(event) => setType(event.target.value as typeof type)}><option value="news">News</option><option value="review">Review</option><option value="commentary/opinion">Commentary / opinion</option><option value="interview">Interview</option></select></label>
-    <label>Cover image path<input name="cover_image" placeholder="/brand/cover.jpg" value={coverImage} onChange={(event) => setCoverImage(event.target.value)} /></label>
+    <label>Cover image<input name="cover_image" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+    {article?.cover_image && <fieldset className="form-stack">
+      <legend>Current cover image</legend>
+      <p>A cover image is saved for this article. Choose a new file above to replace it.</p>
+      <label><input type="checkbox" name="remove_cover" value="true" /> Remove current cover image</label>
+    </fieldset>}
     <label>Article body<textarea name="body" rows={14} required value={body} onChange={(event) => setBody(event.target.value)} /></label>
     {state.error && <p className="form-error" role="alert">{state.error}</p>}
     {state.message && <p className="form-success" role="status">{state.message}</p>}

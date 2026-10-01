@@ -72,13 +72,17 @@ Validated on 2026-09-27 with Node 24.20.0, npm 11.4.1, Supabase CLI 2.118.0, and
 ## End-to-end scenarios
 
 1. **Anonymous reading**: Visit the home/article list, open a published seeded article, and verify its complete title/body/image display on desktop and mobile viewport sizes. Confirm a draft cannot be opened publicly.
-2. **Independent publishing**: Sign in as a contributor, create a draft, verify an empty title/body is rejected while the draft remains, then publish valid content and confirm it appears publicly. Verify a moderator-only account cannot publish.
+2. **Independent publishing**: Sign in as a contributor, create a draft, verify an empty title/body is rejected while the draft remains, upload a JPEG/PNG/WebP cover and confirm it appears in the draft preview and published article, then remove it and confirm it no longer appears. Verify a moderator-only account cannot publish.
 3. **Reader account and comment**: Register/sign in with username/password (including a non-enumerating failed login) or use the controlled Google test path. Submit an allowed comment and verify it appears; submit a blocked-word test case and verify it is not public and receives a clear explanation.
 4. **Report and threshold**: Report the same comment twice as the same account and verify it counts once. Confirm it remains visible. Add distinct reports until the configured threshold is reached, then verify a moderator can delete it.
 5. **Admin bypass and global toggle**: Flag a separate comment once and verify an admin can delete it below threshold. Disable comments as admin, verify the article displays a notice and a new submission is refused without losing composed text, then re-enable comments.
 6. **Content moderation**: Remove an article as a moderator and verify it is no longer available publicly; verify the moderator still cannot create or publish a replacement article.
 7. **Multi-role account**: Sign in as an account with contributor and moderator roles and verify it can publish and moderate according to both grants. Confirm an account without those grants receives clear denials.
 8. **Accessibility and performance**: Run automated accessibility checks on representative public and protected pages; manually verify keyboard navigation. Run `npm --prefix apps/web run performance` against the production build and retain results in `docs/operations/performance-baseline.md`. Repeat Lighthouse with throttling on a deployed preview before launch; local results do not substitute for field INP.
+
+## Verify local article cover storage
+
+With local Supabase running, open Supabase Studio at <http://127.0.0.1:54323> and select **Storage → article-covers** to inspect uploaded objects. The `articles.cover_image` column should contain a public URL in the form `http://127.0.0.1:54321/storage/v1/object/public/article-covers/<user-id>/<filename>`. Open that URL in a browser to verify it serves the image. Removing a cover in the editor clears the column and removes the associated object. Accepted formats are JPEG, PNG, and WebP, up to the configured 10 MiB limit.
 
 ## Shutdown
 
