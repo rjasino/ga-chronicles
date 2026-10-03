@@ -4,11 +4,13 @@
 
 **Created**: 2026-10-03
 
-**Status**: Draft
+**Completed**: 2026-10-03
+
+**Status**: Done
 
 **Input**: User description: "create a toggle for theme, dark and light. The default theme is light and that's why is currently implemented. Create a dark theme base on the docs/neon-GA-01.png and use this image on the right side of the hero banner."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Visitor switches the site between light and dark themes (Priority: P1)
 
@@ -70,7 +72,7 @@ A visitor who chooses a theme finds the site opens in that same theme on their n
 - **Contrast in the dark theme**: Text, controls, focus indicators, and essential imagery remain comfortably readable against the dark surfaces.
 - **Two tabs with different selections**: The most recent selection is the one applied on the next page load; no crash or inconsistent state.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -87,11 +89,11 @@ A visitor who chooses a theme finds the site opens in that same theme on their n
 - **FR-011**: The theme MUST apply consistently across every page that shares the site chrome, including home, articles, sign-in, and the signed-in/admin areas.
 - **FR-012**: If a saved theme preference cannot be read or is unavailable, the site MUST fall back to the light theme without showing an error.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Theme preference**: A visitor's selected appearance, either light or dark, associated with their device/browser rather than their account. It has no attributes beyond the chosen value and the fact that it overrides the light default until changed.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

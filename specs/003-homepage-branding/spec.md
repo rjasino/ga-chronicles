@@ -4,11 +4,13 @@
 
 **Created**: 2026-10-03
 
-**Status**: Draft
+**Completed**: 2026-10-03
 
-**Input**: User description: "adjust eh UI stuff here. * on the hero text, kindly add `#fortheloveofgaming` to show channel brand and motto. * the image on the right with `GA` make use of @docs/neon-GA trans-01.png instead. * at the banner, complet the Game Ako Chronicles title and keep the logo on the left. * add footer that show what Game Ako is. * in the footer, add the social media we have Facebook, YouTube and Twitch just add placeholder and I will update the links manually."
+**Status**: Done
 
-## User Scenarios & Testing *(mandatory)*
+**Input**: User description: "adjust eh UI stuff here. _ on the hero text, kindly add `#fortheloveofgaming` to show channel brand and motto. _ the image on the right with `GA` make use of @docs/neon-GA trans-01.png instead. _ at the banner, complet the Game Ako Chronicles title and keep the logo on the left. _ add footer that show what Game Ako is. \* in the footer, add the social media we have Facebook, YouTube and Twitch just add placeholder and I will update the links manually."
+
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Visitor recognizes the Game Ako brand on the home page (Priority: P1)
 
@@ -65,7 +67,7 @@ The footer lists the channel's social presences — Facebook, YouTube, and Twitc
 - Do the changes affect existing pages or content? No — the article list, reading experience, and all other pages keep their current behavior; only header, hero, and footer presentation change.
 - Is the motto readable by assistive technology? Yes — it is rendered as real text, not an image or icon.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -78,7 +80,7 @@ The footer lists the channel's social presences — Facebook, YouTube, and Twitc
 - **FR-007**: The enhanced branding MUST preserve the existing visual identity, responsive behavior, and accessibility (no horizontal overflow, keyboard focus visible, text not images).
 - **FR-008**: The branding changes MUST NOT alter any existing page content or behavior outside the header, home hero, and footer.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
