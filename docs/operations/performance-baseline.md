@@ -18,4 +18,20 @@
 | Article detail | 1280 px | 160, 152, 160 | 160 ms | 0, 0, 0 | 0 | 16 ms observed |
 | Article detail | 390 px | 156, 156, 144 | 156 ms | .032, .032, .032 | .032 | 16 ms observed |
 
+**Measured:** 2026-10-03, same development machine and setup, after the rich article body feature (Tiptap editor + `article-images` storage + server-rendered rich bodies). Eighteen runs (three per route/viewport) against the optimized production build on localhost.
+
+| Route | Viewport | LCP runs (ms) | Median LCP | CLS runs | Median CLS | Lab event timing |
+|---|---|---:|---|---:|---|---:|---|
+| `/` | 1280 px | 184, 160, 160 | 160 ms | .003, .003, .003 | .003 | 16 ms observed |
+| `/` | 390 px | 256, 164, 156 | 164 ms | .034, .034, .034 | .034 | 16 ms observed |
+| Article detail (legacy plain text) | 1280 px | 184, 172, 160 | 172 ms | 0, 0, 0 | 0 | 16 ms observed |
+| Article detail (legacy plain text) | 390 px | 168, 172, 156 | 168 ms | .033, .033, .033 | .033 | 16 ms observed |
+| Article detail (rich body with inline image) | 1280 px | 172, 160, 176 | 172 ms | .010, .010, .010 | .010 | 16 ms observed |
+| Article detail (rich body with inline image) | 390 px | 168, 168, 156 | 168 ms | .054, .054, .054 | .054 | 16 ms observed |
+
+## Rich-body validation note
+
+- Anonymous article pages are server-rendered with no rich-editor JavaScript; below-fold body images are lazy (`loading="lazy"`), which keeps LCP/CLS effectively unchanged from the launch baseline.
+- The mobile rich-article CLS rose to .054 (within the .10 target) because the inline image is fetched lazily beneath the fold; if field data later exceeds targets, reserve explicit width/height on authored body images.
+
 All measured lab LCP/CLS values are below the plan targets. The event timing sample bottoms out at the observer's 16 ms threshold and is not a field INP result; deployed real-user INP and throttled Lighthouse runs remain launch measurements.

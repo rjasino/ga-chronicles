@@ -1,9 +1,9 @@
 import Image from "next/image";
 import type { Article } from "@/features/articles/queries";
 import { isLocalArticleCoverUrl } from "@/features/articles/article-cover";
+import { renderRichBody } from "@/features/articles/richtext/rich-html";
 
 export function ArticleContent({ article }: { article: Article }) {
-  const paragraphs = article.body.split(/\n\s*\n/).filter(Boolean);
   return (
     <article className="story">
       <header className="story__header">
@@ -12,7 +12,7 @@ export function ArticleContent({ article }: { article: Article }) {
         {article.published_at && <time dateTime={article.published_at}>{new Date(article.published_at).toLocaleDateString("en", { dateStyle: "long" })}</time>}
       </header>
       {article.cover_image && <div className="story__cover"><Image src={article.cover_image} alt="Launch story cover" fill priority loading="eager" sizes="(max-width: 760px) 100vw, 760px" unoptimized={isLocalArticleCoverUrl(article.cover_image, process.env.NEXT_PUBLIC_SUPABASE_URL ?? "")} /></div>}
-      <div className="story__body">{paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+      <div className="story__body" dangerouslySetInnerHTML={{ __html: renderRichBody(article.body) }} />
     </article>
   );
 }

@@ -7,7 +7,10 @@ import { getVerifiedSession } from "@/lib/supabase/session";
 import { can } from "@/lib/authz/permissions";
 import { getPublicEnv } from "@/lib/env";
 import { ARTICLE_COVER_BUCKET, articleCoverExtension, articleCoverStoragePath, validateArticleCover } from "@/features/articles/article-cover";
+import { ARTICLE_IMAGES_BUCKET, articleImageExtension, validateArticleBodyImage } from "@/features/articles/body-image";
 import { articleInputSchema } from "@/features/articles/schema";
+import { richBodyHasContent, sanitizeRichHtml } from "@/features/articles/richtext/rich-html";
+import { bodyImagePaths, reconcileArticleBodyImages } from "@/features/articles/body-image-refs";
 
 export type EditorState = {
   error?: string;
@@ -57,6 +60,10 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
       articleId,
     };
 
+  const bodyHtml = sanitizeRichHtml(parsed.data.body);
+  if (!richBodyHasContent(bodyHtml))
+    return { error: "Add article content.", ...values, articleId };
+
   const supabase = await createClient();
   let existingCover: string | null = null;
   if (articleId) {
@@ -84,7 +91,7 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
 
   const payload = {
     title: parsed.data.title,
-    body: parsed.data.body,
+    body: bodyHtml,
     type: parsed.data.type,
     cover_image: coverImage,
     slug: slugFor(parsed.data.title),
@@ -121,6 +128,20 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
       if (error) console.error("Could not remove the replaced article cover from Supabase Storage.", error);
     }
   }
+
+  let bodyImageCleanupWarning = false;
+  try {
+    const reconciled = await reconcileArticleBodyImages(
+      supabase,
+      result.data.id,
+      bodyImagePaths(bodyHtml, getPublicEnv().NEXT_PUBLIC_SUPABASE_URL),
+    );
+    bodyImageCleanupWarning = reconciled.cleanupIncomplete;
+  } catch (error) {
+    console.error("Could not reconcile article body images.", error);
+    bodyImageCleanupWarning = true;
+  }
+
   revalidatePath("/");
   revalidatePath(`/articles/${result.data.slug}`);
   revalidatePath("/admin/articles");
@@ -129,9 +150,40 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
     articleId: result.data.id,
     message: cleanupWarning
       ? "Article saved, but the previous cover image could not be removed from storage."
-      : intent === "publish" ? "Article published." : "Draft saved.",
+      : bodyImageCleanupWarning
+        ? "Article saved, but some removed body images could not be deleted from storage."
+        : intent === "publish" ? "Article published." : "Draft saved.",
     ...values,
   };
+}
+
+export type BodyImageUploadResult = { error?: string; url?: string };
+
+export async function uploadArticleBodyImage(formData: FormData): Promise<BodyImageUploadResult> {
+  const session = await getVerifiedSession();
+  if (!session || !can(session.roles, "publish"))
+    return { error: "You do not have permission to add images to articles." };
+
+  const value = formData.get("image");
+  if (typeof value === "string" && value.trim())
+    return { error: "Choose an image file instead of entering an image path." };
+  if (!value || typeof value === "string" || value.size === 0) return { error: "Choose an image file." };
+
+  const fileError = await validateArticleBodyImage(value);
+  if (fileError) return { error: fileError };
+
+  const extension = articleImageExtension(value.type);
+  if (!extension) return { error: "Inline images must be JPEG, PNG, or WebP." };
+
+  const supabase = await createClient();
+  const objectPath = `${session.userId}/${randomUUID()}.${extension}`;
+  const { error } = await supabase.storage.from(ARTICLE_IMAGES_BUCKET).upload(objectPath, value, {
+    cacheControl: "3600",
+    contentType: value.type,
+    upsert: false,
+  });
+  if (error) return { error: "The image could not be uploaded. Try again." };
+  return { url: supabase.storage.from(ARTICLE_IMAGES_BUCKET).getPublicUrl(objectPath).data.publicUrl };
 }
 
 export async function getAuthorArticles() {

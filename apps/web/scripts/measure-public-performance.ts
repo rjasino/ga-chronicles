@@ -7,7 +7,7 @@ declare global {
 }
 
 const baseUrl = process.env.PERFORMANCE_BASE_URL ?? "http://127.0.0.1:3000";
-const routes = ["/", "/articles/a-new-chapter-for-independent-games"];
+const routes = ["/", "/articles/a-new-chapter-for-independent-games", "/articles/a-rich-reading-room"];
 const viewports = [1280, 390];
 const browser = await chromium.launch({ headless: true });
 const results: Record<string, { lcp: number[]; cls: number[]; interactionDurations: number[] }> = {};

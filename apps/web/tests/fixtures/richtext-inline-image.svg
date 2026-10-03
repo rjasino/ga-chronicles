@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="Inline sketch fixture">
+  <rect width="640" height="360" fill="#1c4d8f"/>
+  <circle cx="320" cy="180" r="110" fill="#f7c948"/>
+  <path d="M120 280 Q 220 120 320 240 T 540 160" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+</svg>

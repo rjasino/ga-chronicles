@@ -42,6 +42,9 @@ insert into public.account_roles (account_id, role) values
 on conflict do nothing;
 
 insert into public.articles (id, title, slug, body, type, status, author_id, cover_image, published_at) values
-  ('20000000-0000-4000-8000-000000000001', 'A new chapter for independent games', 'a-new-chapter-for-independent-games', 'A launch-week field note on the small teams making big worlds.\n\nThe best independent games invite us to look closer. This week, we are following the makers who are building places worth getting lost in.', 'news', 'published', '10000000-0000-4000-8000-000000000002', '/brand/launch-article-cover.svg', now()),
-  ('20000000-0000-4000-8000-000000000002', 'Private preview draft', 'private-preview-draft', 'This unpublished preview must never appear on the public site.', 'commentary/opinion', 'draft', '10000000-0000-4000-8000-000000000002', null, null)
+  ('20000000-0000-4000-8000-000000000001', 'A new chapter for independent games', 'a-new-chapter-for-independent-games', $legacy$A launch-week field note on the small teams making big worlds.
+
+The best independent games invite us to look closer. This week, we are following the makers who are building places worth getting lost in.$legacy$, 'news', 'published', '10000000-0000-4000-8000-000000000002', '/brand/launch-article-cover.svg', now()),
+  ('20000000-0000-4000-8000-000000000002', 'Private preview draft', 'private-preview-draft', $legacy$This unpublished preview must never appear on the public site.$legacy$, 'commentary/opinion', 'draft', '10000000-0000-4000-8000-000000000002', null, null),
+  ('20000000-0000-4000-8000-000000000003', 'A rich reading room for sketchers', 'a-rich-reading-room', $body$<h2>Small teams, big worlds</h2><p>A <strong>launch-week</strong> field note with <em>emphasis</em>, a list, and an inline image.</p><ul><li>One point</li><li>Two points</li></ul><blockquote>Sketches first, engines later.</blockquote><p>An inline sketch:<br><img src="http://127.0.0.1:3000/brand/richtext-inline-image.svg" alt="Inline sketch fixture" /></p>$body$, 'review', 'published', '10000000-0000-4000-8000-000000000002', null, now())
 on conflict (id) do nothing;
