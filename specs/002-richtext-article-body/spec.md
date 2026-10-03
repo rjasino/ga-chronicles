@@ -4,11 +4,13 @@
 
 **Created**: 2026-10-03
 
-**Status**: Draft
+**Completed**: 2026-10-03
+
+**Status**: Done
 
 **Input**: User description: "Make the article body a richtext field so we can add text and images inside. suggest which best tool to use for richtext for the current app. when image is inserted in the article body, it will be automatically save to supabase storage and the blog will render it according to the size and dimension of the container."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Contributor composes an article with rich text and inline images (Priority: P1)
 
@@ -71,7 +73,7 @@ A contributor returns to an existing draft or published article and adds, remove
 - Can an author paste an external website's image URL directly into the body? No — at this stage only images uploaded through the editor's insert flow are supported; the public page resolves stored image references only.
 - How is reader safety guaranteed when content comes from authors? Authored body content is treated as untrusted; anything that could execute code on a reader's device is neutralized before display, so a reader is never put at risk by opening an article.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -89,13 +91,13 @@ A contributor returns to an existing draft or published article and adds, remove
 - **FR-012**: The system MUST treat authored body content as untrusted and render it for anonymous readers in a way that prevents execution of unsafe code.
 - **FR-013**: Saving or publishing an article with an empty body MUST be rejected with a clear message, consistent with current behavior.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Article Body**: The article's content — formatted text and embedded image references — stored with the article and shared across its draft and published states.
 - **Article Body Image**: A stored image file referenced from within an article body; has source, format, size, and storage location; typically referenced by the article that uploaded it, and eligible for cleanup once no saved draft references it.
 - **Body Image Storage**: The shared, publicly readable repository where article body images are stored so readers and previews can load them.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

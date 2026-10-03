@@ -4,13 +4,15 @@
 
 **Created**: 2026-09-27
 
-**Status**: Draft
+**Completed**: 2026-09-27
+
+**Status**: Done
 
 **Input**: User description: "read the assessment artifacts on what to build"
 
 Assessment sources: `docs/website-plan.md`, `.specify/assessments/blog-site-plan/intake.md`, `research.md`, `problem.md`, `concept.md` (Option A — Lean custom launch), `decision.md` (verdict: go).
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Read published gaming content (Priority: P1)
 
@@ -117,7 +119,7 @@ A visitor experiences a clean, modern, flat/no-gloss (matte) presentation using 
 - What happens when the admin disables comments while a reader is typing a comment? The submission is refused with a clear notice that commenting is turned off, and the reader's text is preserved so it is not lost.
 - What happens when two moderators act on the same flagged comment at the same time? Only one deletion takes effect; the second actor sees that the comment is already handled.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -152,7 +154,7 @@ A visitor experiences a clean, modern, flat/no-gloss (matte) presentation using 
 - **Report / Flag**: A record that a specific user reported a specific comment; aggregated per comment into a report count compared against the configured threshold; does not itself hide the comment.
 - **Blocked-Word List**: The static list of prohibited words used for automatic comment screening.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
