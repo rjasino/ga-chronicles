@@ -29,6 +29,13 @@
 | Article detail (rich body with inline image) | 1280 px | 172, 160, 176 | 172 ms | .010, .010, .010 | .010 | 16 ms observed |
 | Article detail (rich body with inline image) | 390 px | 168, 168, 156 | 168 ms | .054, .054, .054 | .054 | 16 ms observed |
 
+**Measured:** 2026-10-03 (homepage branding refresh), same setup. The home route was re-measured after adding the channel motto, the neon GA hero logo (`next/image`, optimized), the complete wordmark, and the new footer. Home-route numbers are effectively unchanged from the baseline.
+
+| Route | Viewport | LCP runs (ms) | Median LCP | CLS runs | Median CLS | Lab event timing |
+|---|---|---:|---|---:|---|---:|---|
+| `/` | 1280 px | 248, 172, 172 | 172 ms | .003, .003, .003 | .003 | 16 ms observed |
+| `/` | 390 px | 176, 172, 156 | 172 ms | .033, .033, .033 | .033 | 16 ms observed |
+
 ## Rich-body validation note
 
 - Anonymous article pages are server-rendered with no rich-editor JavaScript; below-fold body images are lazy (`loading="lazy"`), which keeps LCP/CLS effectively unchanged from the launch baseline.

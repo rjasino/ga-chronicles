@@ -20,6 +20,15 @@ test("keyboard users can reach the skip link and primary navigation", async ({ p
   await expect(page.getByRole("heading", { name: "Latest stories" })).toBeVisible();
 });
 
+test("home brand text is real content and the hero logo is decorative", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".masthead__motto")).toHaveText("#fortheloveofgaming");
+  await expect(page.locator(".masthead__mark")).toHaveAttribute("alt", "");
+  await expect(page.locator(".site-footer__social-list a").first()).toBeVisible();
+  const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(result.violations).toEqual([]);
+});
+
 test("authoring and moderation screens have no axe violations", async ({ page }) => {
   for (const [username, password, path] of [
     ["localcontributor", "local-contributor-password", "/admin/articles/new"],
