@@ -45,3 +45,24 @@ test("authoring and moderation screens have no axe violations", async ({ page })
     await page.getByRole("button", { name: "Sign out" }).click();
   }
 });
+
+test("the theme toggle is accessible and both themes have no axe violations", async ({ page }) => {
+  const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+  for (const path of ["/", "/sign-in"]) {
+    await page.goto(path);
+    const toggle = page.getByRole("button", { name: /dark mode/i });
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    const lightResult = await new AxeBuilder({ page }).withTags(tags).analyze();
+    expect(lightResult.violations).toEqual([]);
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+    const darkResult = await new AxeBuilder({ page }).withTags(tags).analyze();
+    expect(darkResult.violations).toEqual([]);
+
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  }
+});

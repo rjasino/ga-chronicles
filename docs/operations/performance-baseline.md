@@ -36,6 +36,15 @@
 | `/` | 1280 px | 248, 172, 172 | 172 ms | .003, .003, .003 | .003 | 16 ms observed |
 | `/` | 390 px | 176, 172, 156 | 172 ms | .033, .033, .033 | .033 | 16 ms observed |
 
+**Measured:** 2026-10-03 (light/dark theme toggle), same setup. The home route was re-measured after adding the theme toggle, the no-flash theme initialization script, the dark theme tokens, and switching the hero to the neon "Game Ako" sign artwork. Home-route CLS is unchanged; LCP remains far below the 2.5 s target.
+
+| Route | Viewport | LCP runs (ms) | Median LCP | CLS runs | Median CLS | Lab event timing |
+|---|---|---:|---|---:|---|---:|---|
+| `/` | 1280 px | 268, 208, 184 | 208 ms | .003, .003, .003 | .003 | 16 ms observed |
+| `/` | 390 px | 168, 168, 236 | 168 ms | .034, .034, .034 | .034 | 16 ms observed |
+
+The theme toggle does not affect the article routes; they remain at their prior baselines (article detail median LCP ≤ 204 ms, rich-article median CLS .010/.055).
+
 ## Rich-body validation note
 
 - Anonymous article pages are server-rendered with no rich-editor JavaScript; below-fold body images are lazy (`loading="lazy"`), which keeps LCP/CLS effectively unchanged from the launch baseline.

@@ -12,7 +12,7 @@ export default async function HomePage() {
           <h1>The games worth<br />your time.</h1>
           <p>Reviews, reporting, and opinion for players who care about what they play.</p>
         </div>
-        <Image className="masthead__mark" src="/brand/neon-GA-trans-01.png" alt="" width={520} height={520} priority />
+        <Image className="masthead__mark" src="/brand/neon-GA-01.png" alt="" width={2424} height={2424} priority />
       </section>
       <section className="latest" aria-labelledby="latest-heading">
         <div className="section-heading"><h2 id="latest-heading">Latest stories</h2><span>{articles.length} published</span></div>

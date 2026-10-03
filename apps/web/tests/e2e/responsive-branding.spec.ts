@@ -12,12 +12,12 @@ test("public pages fit desktop and mobile viewports", async ({ page }) => {
   }
 });
 
-test("the home hero carries the channel motto and the real neon GA logo", async ({ page }) => {
+test("the home hero carries the channel motto and the neon Game Ako sign", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".masthead__motto")).toHaveText("#fortheloveofgaming");
   const logo = page.locator(".masthead__mark");
   await expect(logo).toBeVisible();
-  await expect(logo).toHaveAttribute("src", /neon-GA-trans-01\.png/);
+  await expect(logo).toHaveAttribute("src", /neon-GA-01\.png/);
   await expect(logo).toHaveAttribute("alt", "");
 });
 
