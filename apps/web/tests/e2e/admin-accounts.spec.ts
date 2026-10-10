@@ -8,6 +8,14 @@ async function signIn(page: import("@playwright/test").Page, username: string, p
   await expect(page).toHaveURL(/\/$/);
 }
 
+async function personRow(page: import("@playwright/test").Page, username: string) {
+  await page.goto("/admin/users");
+  await page.getByLabel("Search").fill(username);
+  await page.getByRole("button", { name: "Apply filters" }).click();
+  await expect(page).toHaveURL(new RegExp(`q=${username}`));
+  return page.locator(".admin-list li").filter({ hasText: username });
+}
+
 test("admins provision multi-role users who can change their temporary password", async ({ page }) => {
   const suffix = Date.now();
   const username = `team${suffix}`;
@@ -37,8 +45,7 @@ test("admins provision multi-role users who can change their temporary password"
 
   await page.getByRole("button", { name: "Sign out" }).click();
   await signIn(page, "localadmin", "local-admin-password");
-  await page.goto("/admin/users");
-  const accountRow = page.locator(".admin-list li").filter({ hasText: username });
+  const accountRow = await personRow(page, username);
   await expect(accountRow.getByRole("checkbox", { name: "Contributor" })).toBeChecked();
   await expect(accountRow.getByRole("checkbox", { name: "Moderator" })).toBeChecked();
   await accountRow.getByRole("checkbox", { name: "Moderator" }).uncheck();
@@ -52,8 +59,7 @@ test("admins provision multi-role users who can change their temporary password"
   await expect(page.getByRole("heading", { name: "Your articles" })).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
   await signIn(page, "localadmin", "local-admin-password");
-  await page.goto("/admin/users");
-  const refreshedRow = page.locator(".admin-list li").filter({ hasText: username });
+  const refreshedRow = await personRow(page, username);
   await refreshedRow.getByRole("checkbox", { name: "Moderator" }).check();
   await refreshedRow.getByRole("button", { name: "Save roles" }).click();
   await page.getByRole("button", { name: "Sign out" }).click();

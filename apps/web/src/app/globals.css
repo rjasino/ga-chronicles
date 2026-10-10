@@ -183,6 +183,22 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .check-label input { width: 20px; min-height: 20px; accent-color: var(--blue); }
 .role-form { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: .75rem; }
 .role-form button { min-height: 38px; padding: .35rem .7rem; }
+.people-filters { margin-top: 1.6rem; }
+.people-filters__fields { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; padding: 1rem; margin: 0; border: 1px solid var(--line); background: var(--paper); }
+.people-filters__fields legend { margin-bottom: .25rem; }
+.people-filters__field, .people-sort__field { display: grid; gap: .3rem; color: var(--ink); }
+.people-filters__field input, .people-filters__field select, .people-sort__field select { min-height: 44px; padding: .6rem .7rem; border: 1px solid var(--field-line); border-radius: 0; background: var(--white); color: var(--ink); font: 400 .95rem var(--body); }
+.people-sort { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; margin: .75rem 0 1.75rem; padding: .8rem 1rem; border: 1px solid var(--line); background: var(--paper); }
+.people-row { align-content: start; }
+.people-row__email, .people-row__status { color: var(--muted); font-size: .85rem; }
+.people-row__roles { color: var(--blue); font-size: .85rem; font-weight: 600; }
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin: 1rem 0 2rem; }
+.pagination__summary { margin: 0; color: var(--muted); font-size: .9rem; }
+.pagination__list { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; list-style: none; margin: 0; padding: 0; }
+.pagination__item a, .pagination__item span { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; min-height: 34px; padding: 0 .6rem; border: 1px solid var(--line); background: var(--white); color: var(--blue); font-weight: 600; text-decoration: none; }
+.pagination__item a:hover { border-color: var(--blue); }
+.pagination__item span[aria-current="page"] { border-color: var(--blue); background: var(--blue); color: var(--white); }
+.pagination__item span[aria-hidden="true"] { background: var(--paper); color: var(--muted); }
 .settings-form { max-width: 560px; }
 .comment-section { max-width: 760px; margin: 3rem auto 5rem; padding-top: 1.5rem; border-top: 3px solid var(--blue); }
 .comment-section h2, .reported-articles h2 { color: var(--blue); font: 600 1.8rem var(--display); }
@@ -209,6 +225,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .site-header nav { gap: 1rem; }
   .site-header nav { justify-content: flex-end; flex-wrap: wrap; }
   .page-shell { width: 90vw; }
+  .people-filters__field, .people-sort__field { flex: 1 1 100%; }
+  .pagination { justify-content: center; }
+  .pagination__summary { text-align: center; width: 100%; }
 }
 @media (max-width: 430px) {
   .article-card { grid-template-columns: 1fr; }
