@@ -106,6 +106,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .story__header { margin-bottom: 2rem; }
 .story h1 { max-width: 760px; font-size: clamp(2.7rem, 6vw, 4.8rem); line-height: 1.02; letter-spacing: -.055em; }
 .story time { display: block; margin-top: 1rem; color: var(--muted); font-size: .9rem; }
+.story__meta { display: flex; flex-wrap: wrap; gap: .35rem 0; margin: .6rem 0 0; color: var(--muted); font-size: .9rem; }
+.story__byline { margin-right: .75rem; color: var(--ink); font-weight: 600; }
+.story__read-time { padding-left: .75rem; border-left: 1px solid var(--line); }
 .story__cover { position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--paper); }
 .story__cover img { object-fit: cover; }
 .story__body { max-width: 680px; margin: 2rem auto 0; font-family: Georgia, serif; font-size: 1.18rem; line-height: 1.9; }

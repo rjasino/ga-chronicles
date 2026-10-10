@@ -12,6 +12,14 @@ test("public pages fit desktop and mobile viewports", async ({ page }) => {
   }
 });
 
+test("the article byline and read time fit a phone viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/articles/a-new-chapter-for-independent-games");
+  await expect(page.locator(".story__byline")).toBeVisible();
+  await expect(page.locator(".story__read-time")).toBeVisible();
+  expect(await page.locator("body").evaluate((node) => node.scrollWidth)).toBeLessThanOrEqual(390);
+});
+
 test("the home hero carries the channel motto and the neon Game Ako sign", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".masthead__motto")).toHaveText("#fortheloveofgaming");
