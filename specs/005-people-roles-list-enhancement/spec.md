@@ -4,7 +4,9 @@
 
 **Created**: 2026-10-03
 
-**Status**: Draft
+**Completed**: 2026-10-10
+
+**Status**: Done
 
 **Input**: User description: "I want to enhance the feature to add filter and sort for people and roles. additional details on each row such as email to identify the user better. implement pagination as the list will grow overtime."
 
