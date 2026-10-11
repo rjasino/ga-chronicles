@@ -20,6 +20,8 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 export function PeopleFilters({ initial }: { initial: PeopleView }) {
   return (
     <form method="get" className="people-filters" role="search" aria-label="Filter people">
+      <input type="hidden" name="sort" value={initial.sort} />
+      <input type="hidden" name="dir" value={initial.dir} />
       <fieldset className="people-filters__fields">
         <legend className="field-label">Filter the list</legend>
         <div className="people-filters__field"><TextField label="Search" name="q" type="search" defaultValue={initial.q} placeholder="Name or email" autoComplete="off" /></div>
