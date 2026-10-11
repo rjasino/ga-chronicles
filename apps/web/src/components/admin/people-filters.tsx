@@ -1,4 +1,6 @@
 import type { PeopleView, RoleFilter, StatusFilter } from "@/features/admin/people-view";
+import { Button } from "@/components/ui/button";
+import { Select, TextField } from "@/components/ui/text-field";
 
 const ROLE_OPTIONS: { value: RoleFilter; label: string }[] = [
   { value: "any", label: "All roles" },
@@ -20,27 +22,18 @@ export function PeopleFilters({ initial }: { initial: PeopleView }) {
     <form method="get" className="people-filters" role="search" aria-label="Filter people">
       <fieldset className="people-filters__fields">
         <legend className="field-label">Filter the list</legend>
-        <label className="people-filters__field">
-          <span className="field-label">Search</span>
-          <input name="q" type="search" defaultValue={initial.q} placeholder="Name or email" autoComplete="off" />
-        </label>
-        <label className="people-filters__field">
-          <span className="field-label">Role</span>
-          <select name="role" defaultValue={initial.role}>
-            {ROLE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="people-filters__field">
-          <span className="field-label">Status</span>
-          <select name="status" defaultValue={initial.status}>
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-        <button className="button-secondary" type="submit">Apply filters</button>
+        <div className="people-filters__field"><TextField label="Search" name="q" type="search" defaultValue={initial.q} placeholder="Name or email" autoComplete="off" /></div>
+        <div className="people-filters__field"><Select label="Role" name="role" defaultValue={initial.role}>
+          {ROLE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </Select></div>
+        <div className="people-filters__field"><Select label="Status" name="status" defaultValue={initial.status}>
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </Select></div>
+        <Button type="submit" purpose="secondary">Apply filters</Button>
       </fieldset>
     </form>
   );

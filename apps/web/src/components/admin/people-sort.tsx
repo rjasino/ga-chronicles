@@ -1,4 +1,6 @@
 import type { PeopleView, SortDir, SortKey } from "@/features/admin/people-view";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/text-field";
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "username", label: "Username" },
@@ -20,23 +22,17 @@ export function PeopleSort({ initial }: { initial: PeopleView }) {
       <input type="hidden" name="q" value={initial.q} />
       <input type="hidden" name="role" value={initial.role} />
       <input type="hidden" name="status" value={initial.status} />
-      <label className="people-sort__field">
-        <span className="field-label">Sort by</span>
-        <select name="sort" defaultValue={initial.sort}>
-          {SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
-      </label>
-      <label className="people-sort__field">
-        <span className="field-label">Order</span>
-        <select name="dir" defaultValue={initial.dir}>
-          {DIR_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
-      </label>
-      <button className="button-secondary" type="submit">Sort</button>
+      <div className="people-sort__field"><Select label="Sort by" name="sort" defaultValue={initial.sort}>
+        {SORT_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </Select></div>
+      <div className="people-sort__field"><Select label="Order" name="dir" defaultValue={initial.dir}>
+        {DIR_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </Select></div>
+      <Button type="submit" purpose="secondary">Sort</Button>
     </form>
   );
 }
