@@ -79,7 +79,7 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
   if (!(await isAdmin())) return { rows: [], total: 0 };
   const admin = serviceClient();
   const from = (view.page - 1) * PAGE_SIZE;
-  const emailIds = view.q.trim() ? await resolveEmailIds(admin, view.q) : [];
+  const emailEmbed = view.q.trim() ? "account_auth_lookup!inner(email)" : "account_auth_lookup(email)";
   const grantedIds = view.role === "reader" ? await resolveGrantedIds(admin) : [];
 
   // Deterministic role ordering and email-null-last ordering need computed ranks
@@ -87,7 +87,7 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
   // (id/username/roles/email), sort in code, then fetch only the requested page
   // of full rows by id to keep payloads bounded.
   if (view.sort === "role" || view.sort === "email") {
-    const select = `id,username,${rolesEmbed(view.role)},account_auth_lookup(email)`;
+    const select = `id,username,${rolesEmbed(view.role)},${emailEmbed}`;
     const matched: Array<{
       id: string;
       username: string;
@@ -97,7 +97,7 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
     const batchSize = 1000;
     for (let offset = 0; ; offset += batchSize) {
       const query = admin.from("accounts").select(select);
-      applyCriteria(query, view, emailIds, grantedIds);
+      applyCriteria(query, view, grantedIds);
       const { data } = await query.range(offset, offset + batchSize - 1);
       const batch = (data ?? []) as unknown as typeof matched;
       matched.push(...batch);
@@ -128,7 +128,7 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
     }
     const pageIds = decorated.slice(from, from + PAGE_SIZE).map((row) => row.id);
     if (pageIds.length === 0) return { rows: [], total };
-    const { data: full } = await admin.from("accounts").select(fullSelect(view.role)).in("id", pageIds);
+    const { data: full } = await admin.from("accounts").select(fullSelect(view.role, emailEmbed)).in("id", pageIds);
     const byId = new Map(((full ?? []) as unknown as RawAccountRow[]).map((row) => [row.id, normalizeRow(row)]));
     const rows = pageIds
       .map((id) => byId.get(id))
@@ -136,8 +136,8 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
     return { rows, total };
   }
 
-  const query = admin.from("accounts").select(fullSelect(view.role), { count: "exact" });
-  applyCriteria(query, view, emailIds, grantedIds);
+  const query = admin.from("accounts").select(fullSelect(view.role, emailEmbed), { count: "exact" });
+  applyCriteria(query, view, grantedIds);
   query.order(view.sort === "created" ? "created_at" : view.sort, { ascending: view.dir === "asc" });
   if (view.sort !== "username") query.order("username", { ascending: true });
   const { data, count } = await query.range(from, from + PAGE_SIZE - 1);
@@ -151,20 +151,8 @@ function rolesEmbed(role: PeopleView["role"]): string {
     : "account_roles(role)";
 }
 
-function fullSelect(role: PeopleView["role"]): string {
-  return `id,username,status,created_at,${rolesEmbed(role)},account_auth_lookup(email)`;
-}
-
-/** Account ids whose email matches the search text (case-insensitive, partial). */
-async function resolveEmailIds(admin: ReturnType<typeof serviceClient>, q: string): Promise<string[]> {
-  // Strip characters that would corrupt the PostgREST logic tree (none of which
-  // can occur in a username or a well-formed email).
-  const pattern = q.trim().replace(/[,()<>]/g, "");
-  const { data } = await admin
-    .from("accounts")
-    .select("id,account_auth_lookup!inner(email)")
-    .filter("account_auth_lookup.email", "ilike", `%${pattern}%`);
-  return ((data ?? []) as Array<{ id: string }>).map((row) => row.id);
+function fullSelect(role: PeopleView["role"], emailEmbed: string): string {
+  return `id,username,status,created_at,${rolesEmbed(role)},${emailEmbed}`;
 }
 
 /** Account ids that hold at least one explicit role grant. */
@@ -173,26 +161,16 @@ async function resolveGrantedIds(admin: ReturnType<typeof serviceClient>): Promi
   return ((data ?? []) as Array<{ account_id: string }>).map((row) => row.account_id);
 }
 
-/**
- * Applies search, role, and status criteria to an accounts query (no order/range).
- * PostgREST logic trees cannot reference embedded columns, so email matches are
- * folded in as a top-level `id.in.(...)` clause inside the `or` group; the
- * implicit reader role is expressed as `id=not.in.( granted ids )`.
- */
+/** Applies search, role, and status criteria to an accounts query (no order/range). */
 function applyCriteria(
-  query: { or: (clause: string) => void; ilike: (column: string, pattern: string) => void; filter: (column: string, operator: string, value: string) => void; eq: (column: string, value: string) => void },
+  query: { or: (clause: string) => void; filter: (column: string, operator: string, value: string) => void; eq: (column: string, value: string) => void },
   view: PeopleView,
-  emailIds: string[],
   grantedIds: string[],
 ) {
   const q = view.q.trim();
   if (q) {
     const pattern = q.replace(/[,()<>]/g, "");
-    if (emailIds.length > 0) {
-      query.or(`username.ilike.*${pattern}*,id.in.(${emailIds.join(",")})`);
-    } else {
-      query.ilike("username", `%${pattern}%`);
-    }
+    query.or(`username.ilike.*${pattern}*,account_auth_lookup.email.ilike.*${pattern}*`);
   }
   if (view.role === "reader") {
     if (grantedIds.length > 0) query.filter("id", "not.in", `(${grantedIds.join(",")})`);
