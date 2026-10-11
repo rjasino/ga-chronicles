@@ -80,7 +80,6 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
   const admin = serviceClient();
   const from = (view.page - 1) * PAGE_SIZE;
   const emailEmbed = view.q.trim() ? "account_auth_lookup!inner(email)" : "account_auth_lookup(email)";
-  const grantedIds = view.role === "reader" ? await resolveGrantedIds(admin) : [];
 
   // Deterministic role ordering and email-null-last ordering need computed ranks
   // / null handling, so those two sorts fetch the matched set in slim form
@@ -97,7 +96,7 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
     const batchSize = 1000;
     for (let offset = 0; ; offset += batchSize) {
       const query = admin.from("accounts").select(select);
-      applyCriteria(query, view, grantedIds);
+      applyCriteria(query, view);
       const { data } = await query.range(offset, offset + batchSize - 1);
       const batch = (data ?? []) as unknown as typeof matched;
       matched.push(...batch);
@@ -137,7 +136,7 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
   }
 
   const query = admin.from("accounts").select(fullSelect(view.role, emailEmbed), { count: "exact" });
-  applyCriteria(query, view, grantedIds);
+  applyCriteria(query, view);
   query.order(view.sort === "created" ? "created_at" : view.sort, { ascending: view.dir === "asc" });
   if (view.sort !== "username") query.order("username", { ascending: true });
   const { data, count } = await query.range(from, from + PAGE_SIZE - 1);
@@ -155,17 +154,10 @@ function fullSelect(role: PeopleView["role"], emailEmbed: string): string {
   return `id,username,status,created_at,${rolesEmbed(role)},${emailEmbed}`;
 }
 
-/** Account ids that hold at least one explicit role grant. */
-async function resolveGrantedIds(admin: ReturnType<typeof serviceClient>): Promise<string[]> {
-  const { data } = await admin.from("account_roles").select("account_id");
-  return ((data ?? []) as Array<{ account_id: string }>).map((row) => row.account_id);
-}
-
 /** Applies search, role, and status criteria to an accounts query (no order/range). */
 function applyCriteria(
-  query: { or: (clause: string) => void; filter: (column: string, operator: string, value: string) => void; eq: (column: string, value: string) => void },
+  query: { or: (clause: string) => void; filter: (column: string, operator: string, value: string) => void; eq: (column: string, value: string) => void; is: (column: string, value: null) => void },
   view: PeopleView,
-  grantedIds: string[],
 ) {
   const q = view.q.trim();
   if (q) {
@@ -173,7 +165,7 @@ function applyCriteria(
     query.or(`username.ilike.*${pattern}*,account_auth_lookup.email.ilike.*${pattern}*`);
   }
   if (view.role === "reader") {
-    if (grantedIds.length > 0) query.filter("id", "not.in", `(${grantedIds.join(",")})`);
+    query.is("account_roles", null);
   } else if (view.role !== "any") {
     query.filter("role_filter.role", "eq", view.role);
   }
