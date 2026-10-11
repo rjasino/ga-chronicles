@@ -88,15 +88,21 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
   // of full rows by id to keep payloads bounded.
   if (view.sort === "role" || view.sort === "email") {
     const select = `id,username,${rolesEmbed(view.role)},account_auth_lookup(email)`;
-    const query = admin.from("accounts").select(select);
-    applyCriteria(query, view, emailIds, grantedIds);
-    const { data } = await query;
-    const matched = ((data ?? []) as unknown as Array<{
+    const matched: Array<{
       id: string;
       username: string;
       account_roles?: { role: string }[] | null;
       account_auth_lookup?: { email: string } | null;
-    }>);
+    }> = [];
+    const batchSize = 1000;
+    for (let offset = 0; ; offset += batchSize) {
+      const query = admin.from("accounts").select(select);
+      applyCriteria(query, view, emailIds, grantedIds);
+      const { data } = await query.range(offset, offset + batchSize - 1);
+      const batch = (data ?? []) as unknown as typeof matched;
+      matched.push(...batch);
+      if (batch.length < batchSize) break;
+    }
     const total = matched.length;
     const decorated = matched.map((row) => ({
       id: row.id,
