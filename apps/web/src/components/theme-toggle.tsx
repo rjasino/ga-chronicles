@@ -31,7 +31,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="theme-toggle inline-flex cursor-pointer items-center gap-1.5 border border-line bg-transparent px-2 py-1 text-[.8rem] font-semibold text-ink hover:border-blue hover:text-blue focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-gold"
+      className="theme-toggle inline-flex min-h-11 cursor-pointer items-center gap-1.5 border border-line bg-transparent px-2 py-1 text-[.8rem] font-semibold text-ink hover:border-blue hover:text-blue focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-gold"
       aria-pressed={isDark}
       onClick={toggleTheme}
     >
