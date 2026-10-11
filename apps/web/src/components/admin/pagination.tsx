@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { buildViewUrl, PAGE_SIZE, type PeopleView } from "@/features/admin/people-view";
 
-const itemLink = "inline-flex min-h-[34px] min-w-[34px] items-center justify-center border border-line bg-white px-2.5 font-semibold text-blue no-underline hover:border-blue";
-const itemCurrent = "inline-flex min-h-[34px] min-w-[34px] items-center justify-center border border-blue bg-blue px-2.5 font-semibold text-white";
-const itemDisabled = "inline-flex min-h-[34px] min-w-[34px] items-center justify-center border border-line bg-paper px-2.5 font-semibold text-muted";
+const itemLink = "inline-flex min-h-11 min-w-11 items-center justify-center border border-line bg-white px-2.5 font-semibold text-blue no-underline hover:border-blue";
+const itemCurrent = "inline-flex min-h-11 min-w-11 items-center justify-center border border-blue bg-blue px-2.5 font-semibold text-white";
+const itemDisabled = "inline-flex min-h-11 min-w-11 items-center justify-center border border-line bg-paper px-2.5 font-semibold text-muted";
 
 /** Paged navigation for the People & roles list; hidden when results fit one page. */
 export function Pagination({ view, total }: { view: PeopleView; total: number }) {
