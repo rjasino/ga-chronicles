@@ -144,9 +144,11 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
   return { rows: ((data ?? []) as unknown as RawAccountRow[]).map(normalizeRow), total: count ?? data?.length ?? 0 };
 }
 
-/** Embed hint for the role relationship: an inner join makes role filters restrict parents. */
+/** Use a separate inner embed for filtering so returned grants remain unfiltered. */
 function rolesEmbed(role: PeopleView["role"]): string {
-  return role !== "any" && role !== "reader" ? "account_roles!inner(role)" : "account_roles(role)";
+  return role !== "any" && role !== "reader"
+    ? "role_filter:account_roles!inner(role),account_roles(role)"
+    : "account_roles(role)";
 }
 
 function fullSelect(role: PeopleView["role"]): string {
@@ -195,7 +197,7 @@ function applyCriteria(
   if (view.role === "reader") {
     if (grantedIds.length > 0) query.filter("id", "not.in", `(${grantedIds.join(",")})`);
   } else if (view.role !== "any") {
-    query.filter("account_roles.role", "eq", view.role);
+    query.filter("role_filter.role", "eq", view.role);
   }
   if (view.status !== "any") query.eq("status", view.status);
 }
