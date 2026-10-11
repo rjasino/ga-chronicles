@@ -33,7 +33,7 @@ export function SiteFooter() {
           {socialLinks.map(({ name, href, path }) => (
             <li key={name}>
               <a
-                className="site-footer__social-link inline-flex size-7 items-center justify-center text-on-brand no-underline hover:text-yellow"
+                className="site-footer__social-link inline-flex size-11 items-center justify-center text-on-brand no-underline hover:text-yellow"
                 href={href}
                 rel="noopener noreferrer"
                 aria-label={name}
