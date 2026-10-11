@@ -5,7 +5,7 @@ import { signOut } from "@/features/auth/actions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
-const navLink = "font-semibold no-underline hover:text-red";
+const navLink = "inline-flex min-h-11 items-center font-semibold no-underline hover:text-red";
 
 export async function SiteHeader() {
   const session = await getVerifiedSession();
