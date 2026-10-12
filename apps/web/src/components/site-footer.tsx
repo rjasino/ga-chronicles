@@ -18,35 +18,35 @@ const socialLinks = [
 
 export function SiteFooter() {
   return (
-    <footer className="site-footer">
-      <div className="site-footer__brand">
-        <p className="site-footer__name">Game Ako Chronicles</p>
-        <p className="site-footer__about">
+    <footer className="site-footer flex flex-wrap items-start justify-between gap-8 bg-brand-band px-[max(5vw,calc((100vw-1160px)/2))] py-10 text-[.9rem] text-on-brand max-[430px]:gap-4">
+      <div className="site-footer__brand grid max-w-[46ch] gap-1.5">
+        <p className="site-footer__name m-0 font-display text-xl font-bold tracking-[-.02em] text-yellow">Game Ako Chronicles</p>
+        <p className="site-footer__about m-0 leading-relaxed text-on-brand/80">
           An independent gaming outlet for reviews, stories, and player-first commentary. Play
           thoughtfully.
         </p>
-        <p className="site-footer__motto">#fortheloveofgaming</p>
+        <p className="site-footer__motto mt-1.5 mb-0 font-display text-[1.05rem] font-semibold text-yellow">#fortheloveofgaming</p>
       </div>
-      <div className="site-footer__socials">
-        <p className="site-footer__socials-heading">Follow Game Ako</p>
-        <ul className="site-footer__social-list">
+      <div className="site-footer__socials grid gap-2.5">
+        <p className="site-footer__socials-heading m-0 font-display text-[.95rem] font-semibold text-on-brand">Follow Game Ako</p>
+        <ul className="site-footer__social-list m-0 flex list-none gap-[1.15rem] p-0">
           {socialLinks.map(({ name, href, path }) => (
             <li key={name}>
               <a
-                className="site-footer__social-link"
+                className="site-footer__social-link inline-flex size-11 items-center justify-center text-on-brand no-underline hover:text-yellow"
                 href={href}
                 rel="noopener noreferrer"
                 aria-label={name}
                 target="_blank"
               >
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false" className="block size-[22px]">
                   <path d={path} />
                 </svg>
               </a>
             </li>
           ))}
         </ul>
-        <p className="site-footer__legal">
+        <p className="site-footer__legal m-0 text-[.8rem] text-on-brand/60">
           © {new Date().getFullYear()} Game Ako Chronicles. All rights reserved.
         </p>
       </div>

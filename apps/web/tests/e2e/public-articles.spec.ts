@@ -6,6 +6,8 @@ test("anonymous readers can open published stories but not drafts", async ({ pag
   await page.goto("/articles/a-new-chapter-for-independent-games");
   await expect(page.getByRole("article")).toContainText("A launch-week field note");
   await expect(page.getByRole("img", { name: /launch story cover/i })).toBeVisible();
+  await expect(page.locator(".story__byline")).toContainText("By ");
+  await expect(page.locator(".story__read-time")).toContainText("min read");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);

@@ -5,6 +5,8 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import { uploadArticleBodyImage } from "@/features/articles/actions";
 import { richTextExtensions } from "@/features/articles/richtext/extensions";
 import { isPlainTextBody, plainTextToHtml, sanitizeRichHtml } from "@/features/articles/richtext/rich-html";
+import { Button } from "@/components/ui/button";
+import { Message } from "@/components/ui/message";
 
 type RichTextEditorProps = {
   initialBody: string;
@@ -20,9 +22,9 @@ type ToolbarButtonProps = {
 
 function ToolbarButton({ onClick, active = false, disabled = false, label, children }: ToolbarButtonProps) {
   return (
-    <button type="button" className={active ? "rich-button rich-button--active" : "rich-button"} aria-pressed={active} aria-label={label} disabled={disabled} onClick={onClick}>
+    <Button type="button" size="toolbar" active={active} aria-pressed={active} aria-label={label} disabled={disabled} onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -103,7 +105,7 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
         event.target.value = "";
       }} />
       {uploading && <p className="form-status" role="status">Uploading image…</p>}
-      {imageError && <p className="form-error" role="alert">{imageError}</p>}
+      {imageError && <Message tone="error">{imageError}</Message>}
       <input type="hidden" name="body" value={bodyHtml} />
     </div>
   );

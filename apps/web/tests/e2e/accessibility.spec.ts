@@ -46,6 +46,40 @@ test("authoring and moderation screens have no axe violations", async ({ page })
   }
 });
 
+test("the People & roles admin list has labeled controls and no axe violations", async ({ page }) => {
+  await page.goto("/sign-in");
+  await page.getByLabel("Username").fill("localadmin");
+  await page.getByLabel("Password").fill("local-admin-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto("/admin/users");
+
+  await expect(page.getByLabel("Search")).toBeVisible();
+  await expect(page.locator('select[name="role"]')).toBeVisible();
+  await expect(page.locator('select[name="status"]')).toBeVisible();
+  await expect(page.locator('select[name="sort"]')).toBeVisible();
+  await expect(page.locator('select[name="dir"]')).toBeVisible();
+
+  const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(result.violations).toEqual([]);
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+});
+
+test("article byline and read time have no axe violations in either theme", async ({ page }) => {
+  const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+  await page.goto("/articles/a-new-chapter-for-independent-games");
+  const toggle = page.getByRole("button", { name: /dark mode/i });
+
+  const lightResult = await new AxeBuilder({ page }).withTags(tags).analyze();
+  expect(lightResult.violations).toEqual([]);
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  const darkResult = await new AxeBuilder({ page }).withTags(tags).analyze();
+  expect(darkResult.violations).toEqual([]);
+});
+
 test("the theme toggle is accessible and both themes have no axe violations", async ({ page }) => {
   const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
   for (const path of ["/", "/sign-in"]) {
