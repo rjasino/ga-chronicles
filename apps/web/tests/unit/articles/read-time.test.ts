@@ -28,6 +28,11 @@ describe("estimateReadMinutes", () => {
     expect(estimateReadMinutes(`<p>${words(120)}</p><p>${words(120)}</p>`)).toBe(2);
   });
 
+  it("decodes entities and ignores punctuation-only tokens", () => {
+    expect(estimateReadMinutes(`<p>${words(200)}&nbsp;next</p>`)).toBe(2);
+    expect(estimateReadMinutes(`<p>${words(200)} --- &amp; &mdash; &#8230;</p>`)).toBe(1);
+  });
+
   it("rounds up at exactly 200 and 201 words", () => {
     expect(estimateReadMinutes(`<p>${words(200)}</p>`)).toBe(1);
     expect(estimateReadMinutes(`<p>${words(201)}</p>`)).toBe(2);
