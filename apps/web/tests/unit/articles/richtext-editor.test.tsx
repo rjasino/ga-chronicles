@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RichTextEditor } from "@/features/articles/richtext/editor";
 
@@ -57,6 +57,62 @@ describe("RichTextEditor", () => {
     fireEvent.change(container.querySelector('input[name="body_image"]')!, { target: { files: [file] } });
     await waitFor(() => screen.findByRole("alert"));
     expect(screen.getByRole("alert")).toHaveTextContent(/JPEG, PNG, or WebP/);
+    expect(hiddenBody(container).value).toBe("<p>Start</p>");
+  });
+
+  it("shows a blocking upload dialog until the upload settles", async () => {
+    let finish: (value: { error?: string }) => void = () => {};
+    uploadArticleBodyImage.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    const { container } = await renderEditor("<p>Start</p>");
+    const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], "shot.jpg", { type: "image/jpeg" });
+    fireEvent.change(container.querySelector('input[name="body_image"]')!, { target: { files: [file] } });
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveTextContent("Uploading image");
+    finish({ error: "The image could not be uploaded. Try again." });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
+  it("rejects oversized images before uploading and reports the limit and file size", async () => {
+    const { container } = await renderEditor("<p>Start</p>");
+    const oversized = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "huge.jpg", { type: "image/jpeg" });
+    fireEvent.change(container.querySelector('input[name="body_image"]')!, { target: { files: [oversized] } });
+    await waitFor(() => expect(within(container).getByRole("alert")).toHaveTextContent("Inline images must be 10 MiB or smaller. This image is 10.1 MiB."));
+    expect(uploadArticleBodyImage).not.toHaveBeenCalled();
+    expect(hiddenBody(container).value).toBe("<p>Start</p>");
+  });
+
+  it("shows a readable error when the upload request fails", async () => {
+    uploadArticleBodyImage.mockRejectedValue(new Error("Body too large"));
+    const { container } = await renderEditor("<p>Start</p>");
+    const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], "shot.jpg", { type: "image/jpeg" });
+    fireEvent.change(container.querySelector('input[name="body_image"]')!, { target: { files: [file] } });
+    await waitFor(() => expect(within(container).getByRole("alert")).toHaveTextContent("The image could not be uploaded. Try again."));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens an inline link form instead of a browser prompt", async () => {
+    const { container } = await renderEditor("<p>Start</p>");
+    fireEvent.click(within(container).getByRole("button", { name: "Link" }));
+    const input = within(container).getByRole("textbox", { name: "Link URL" });
+    expect(input).toHaveValue("https://");
+  });
+
+  it("leaves the body unchanged when the link is applied empty", async () => {
+    const { container } = await renderEditor("<p>Start</p>");
+    fireEvent.click(within(container).getByRole("button", { name: "Link" }));
+    const input = within(container).getByRole("textbox", { name: "Link URL" });
+    fireEvent.change(input, { target: { value: "   " } });
+    fireEvent.click(within(container).getByRole("button", { name: "Apply link" }));
+    expect(within(container).queryByRole("textbox", { name: "Link URL" })).toBeNull();
+    expect(hiddenBody(container).value).toBe("<p>Start</p>");
+  });
+
+  it("closes the link form on Escape without changing the body", async () => {
+    const { container } = await renderEditor("<p>Start</p>");
+    fireEvent.click(within(container).getByRole("button", { name: "Link" }));
+    fireEvent.keyDown(within(container).getByRole("textbox", { name: "Link URL" }), { key: "Escape" });
+    expect(within(container).queryByRole("textbox", { name: "Link URL" })).toBeNull();
     expect(hiddenBody(container).value).toBe("<p>Start</p>");
   });
 });
