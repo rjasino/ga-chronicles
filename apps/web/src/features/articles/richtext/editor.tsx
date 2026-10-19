@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { uploadArticleBodyImage } from "@/features/articles/actions";
@@ -21,11 +21,12 @@ type ToolbarButtonProps = {
   disabled?: boolean;
   label: string;
   children: string;
+  buttonRef?: Ref<HTMLButtonElement>;
 };
 
-function ToolbarButton({ onClick, active = false, disabled = false, label, children }: ToolbarButtonProps) {
+function ToolbarButton({ onClick, active = false, disabled = false, label, children, buttonRef }: ToolbarButtonProps) {
   return (
-    <Button type="button" size="toolbar" active={active} aria-pressed={active} aria-label={label} disabled={disabled} onClick={onClick}>
+    <Button ref={buttonRef} type="button" size="toolbar" active={active} aria-pressed={active} aria-label={label} disabled={disabled} onClick={onClick}>
       {children}
     </Button>
   );
@@ -40,16 +41,17 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
   const [linkDraft, setLinkDraft] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const dialog = useRef<HTMLDivElement | null>(null);
+  const imageButton = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!uploading) return;
-    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const imageButtonElement = imageButton.current;
     const blocked = Array.from(document.body.children).filter((element) => !element.hasAttribute("data-upload-modal"));
     blocked.forEach((element) => element.setAttribute("inert", ""));
     dialog.current?.focus();
     return () => {
       blocked.forEach((element) => element.removeAttribute("inert"));
-      previouslyFocused?.focus();
+      imageButtonElement?.focus();
     };
   }, [uploading]);
 
@@ -129,7 +131,7 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
         <ToolbarButton label="Block quote" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>❝ Quote</ToolbarButton>
         <ToolbarButton label="Link" active={editor.isActive("link")} onClick={openLinkForm}>🔗 Link</ToolbarButton>
         <span className="rich-toolbar__separator" aria-hidden="true" />
-        <ToolbarButton label="Insert image" disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? "Uploading…" : "🖼 Image"}</ToolbarButton>
+        <ToolbarButton buttonRef={imageButton} label="Insert image" disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? "Uploading…" : "🖼 Image"}</ToolbarButton>
       </div>
       {linkDraft !== null && (
         <div className="rich-link-form" role="group" aria-label="Link settings" onKeyDown={(event) => {

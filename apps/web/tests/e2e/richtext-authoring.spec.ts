@@ -73,6 +73,14 @@ test("Editorial desk is the page heading", async ({ page }) => {
   await signInAsContributor(page);
   await page.goto("/admin/articles/new");
   await expect(page.getByRole("heading", { level: 1, name: "Editorial desk" })).toBeVisible();
+
+  await page.getByLabel("Title").fill(`Heading check ${Date.now()}`);
+  await page.getByRole("textbox", { name: "Article body" }).fill("An article for edit heading coverage.");
+  await page.getByRole("button", { name: "Save draft" }).click();
+  await expect(page.getByText(/draft saved/i)).toBeVisible();
+  const articleId = await page.locator('input[name="articleId"]').inputValue();
+  await page.goto(`/admin/articles/${articleId}/edit`);
+  await expect(page.getByRole("heading", { level: 1, name: "Editorial desk" })).toBeVisible();
 });
 
 test("the formatting toolbar stays at the top of the viewport while a long article is scrolled", async ({ page }) => {
@@ -159,6 +167,7 @@ test("an inline image upload blocks the page with a loading dialog until it fini
   await expect(page.getByLabel("Title").click({ timeout: 800 })).rejects.toThrow();
   await expect(dialog).toBeHidden({ timeout: 15000 });
   await expect(editor.locator("img")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Insert image" })).toBeFocused();
 });
 
 test("oversized inline images show the size limit and are not inserted", async ({ page }) => {
