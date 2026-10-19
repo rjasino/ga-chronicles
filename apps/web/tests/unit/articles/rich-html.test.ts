@@ -1,5 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { RICH_HTML_CONFIG, isPlainTextBody, plainTextParagraphs, plainTextToHtml, renderRichBody, sanitizeRichHtml } from "@/features/articles/richtext/rich-html";
+import { RICH_HTML_CONFIG, isPlainTextBody, plainTextParagraphs, plainTextToHtml, renderRichBody, richBodyToPlainText, sanitizeRichHtml } from "@/features/articles/richtext/rich-html";
+
+describe("richBodyToPlainText", () => {
+  it("returns the words of a rich body without tags", () => {
+    expect(richBodyToPlainText("<p>AI may help <strong>smaller teams</strong> stretch.</p><p>Second line.</p>")).toBe(
+      "AI may help smaller teams stretch. Second line.",
+    );
+  });
+
+  it("decodes entities the sanitizer escapes", () => {
+    expect(richBodyToPlainText("<p>Tom &amp; Jerry say &quot;hi&quot; &lt;3</p>")).toBe('Tom & Jerry say "hi" <3');
+  });
+
+  it("returns legacy plain text with whitespace collapsed", () => {
+    expect(richBodyToPlainText("First  paragraph\n\nSecond")).toBe("First paragraph Second");
+  });
+
+  it("returns an empty string for an empty body", () => {
+    expect(richBodyToPlainText("<p></p>")).toBe("");
+    expect(richBodyToPlainText("")).toBe("");
+  });
+});
 
 describe("rich body sanitization", () => {
   it("keeps the configured editorial subset and drops unsafe markup", () => {

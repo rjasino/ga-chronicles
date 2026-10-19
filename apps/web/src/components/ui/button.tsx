@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ButtonHTMLAttributes, ComponentProps } from "react";
+import type { ButtonHTMLAttributes, ComponentProps, Ref } from "react";
 import { cn } from "./cn";
 
 export type ButtonPurpose = "primary" | "secondary" | "error" | "success" | "text";
@@ -37,12 +37,14 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: ButtonSize;
   pending?: boolean;
   active?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 };
 
-export function Button({ purpose = "secondary", size = "default", pending = false, active = false, disabled, className, ...props }: ButtonProps) {
+export function Button({ purpose = "secondary", size = "default", pending = false, active = false, disabled, className, ref, ...props }: ButtonProps) {
   return (
     <button
       {...props}
+      ref={ref}
       disabled={disabled || pending}
       aria-busy={pending || undefined}
       className={cn(buttonClasses({ purpose, size, active }), className)}

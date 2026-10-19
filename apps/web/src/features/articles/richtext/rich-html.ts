@@ -83,6 +83,28 @@ export function richBodyHasContent(body: string): boolean {
 }
 
 /**
+ * Plain-text form of a stored body for summaries. Block boundaries become spaces so
+ * adjacent paragraphs do not run together, markup is removed, and the entities the
+ * sanitizer re-escapes are decoded.
+ */
+export function richBodyToPlainText(body: string): string {
+  if (isPlainTextBody(body)) return body.replace(/\s+/g, " ").trim();
+  const text = sanitizeHtml(body.replace(/<\/(p|h[1-6]|li|blockquote)>|<br\s*\/?>/gi, " "), {
+    allowedTags: [],
+    allowedAttributes: {},
+  });
+  return text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
  * Renders a stored article body into safe HTML for readers. Legacy plain-text
  * bodies are converted to paragraphs; rich bodies are sanitized again on render
  * (defense-in-depth) and body images are marked lazy so they do not delay the

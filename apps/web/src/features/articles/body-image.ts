@@ -5,6 +5,15 @@
 export const ARTICLE_IMAGES_BUCKET = "article-images";
 export const ARTICLE_IMAGES_MAX_SIZE = 10 * 1024 * 1024;
 
+/** Rounds up to one decimal so a file just over a limit never displays at the limit. */
+export function formatImageSize(bytes: number): string {
+  return `${(Math.ceil((bytes / (1024 * 1024)) * 10) / 10).toFixed(1)} MiB`;
+}
+
+export function imageTooLargeMessage(subject: string, fileSize: number, maxSizeBytes: number): string {
+  return `${subject} must be ${maxSizeBytes / (1024 * 1024)} MiB or smaller. This image is ${formatImageSize(fileSize)}.`;
+}
+
 type ImageFile = {
   size: number;
   type: string;
@@ -28,7 +37,7 @@ export function articleImageExtension(contentType: string): string | null {
  */
 export async function validateImageFile(file: ImageFile, maxSizeBytes: number, subject: string): Promise<string | null> {
   if (file.size === 0) return "Choose an image file.";
-  if (file.size > maxSizeBytes) return `${subject} must be ${maxSizeBytes / (1024 * 1024)} MiB or smaller.`;
+  if (file.size > maxSizeBytes) return imageTooLargeMessage(subject, file.size, maxSizeBytes);
 
   const format = Object.hasOwn(imageFormats, file.type) ? imageFormats[file.type as keyof typeof imageFormats] : null;
   if (!format) return `${subject} must be JPEG, PNG, or WebP.`;

@@ -7,7 +7,14 @@ import { getVerifiedSession } from "@/lib/supabase/session";
 import { can } from "@/lib/authz/permissions";
 import { getPublicEnv } from "@/lib/env";
 import { ARTICLE_COVER_BUCKET, articleCoverExtension, articleCoverStoragePath, validateArticleCover } from "@/features/articles/article-cover";
-import { ARTICLE_IMAGES_BUCKET, articleImageExtension, validateArticleBodyImage } from "@/features/articles/body-image";
+import {
+  ARTICLE_BODY_IMAGE_SUBJECT,
+  ARTICLE_IMAGES_BUCKET,
+  ARTICLE_IMAGES_MAX_SIZE,
+  articleImageExtension,
+  imageTooLargeMessage,
+  validateArticleBodyImage,
+} from "@/features/articles/body-image";
 import { articleInputSchema } from "@/features/articles/schema";
 import { richBodyHasContent, sanitizeRichHtml } from "@/features/articles/richtext/rich-html";
 import { bodyImagePaths, reconcileArticleBodyImages } from "@/features/articles/body-image-refs";
@@ -157,23 +164,38 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
   };
 }
 
-export type BodyImageUploadResult = { error?: string; url?: string };
+export type BodyImageUploadErrorCode =
+  | "not_signed_in"
+  | "missing_file"
+  | "too_large"
+  | "invalid_type"
+  | "invalid_signature"
+  | "upload_failed";
+
+export type BodyImageUploadResult = { error?: string; errorCode?: BodyImageUploadErrorCode; url?: string };
 
 export async function uploadArticleBodyImage(formData: FormData): Promise<BodyImageUploadResult> {
   const session = await getVerifiedSession();
   if (!session || !can(session.roles, "publish"))
-    return { error: "You do not have permission to add images to articles." };
+    return { errorCode: "not_signed_in", error: "You do not have permission to add images to articles." };
 
   const value = formData.get("image");
   if (typeof value === "string" && value.trim())
-    return { error: "Choose an image file instead of entering an image path." };
-  if (!value || typeof value === "string" || value.size === 0) return { error: "Choose an image file." };
+    return { errorCode: "missing_file", error: "Choose an image file instead of entering an image path." };
+  if (!value || typeof value === "string" || value.size === 0)
+    return { errorCode: "missing_file", error: "Choose an image file." };
 
-  const fileError = await validateArticleBodyImage(value);
-  if (fileError) return { error: fileError };
+  if (value.size > ARTICLE_IMAGES_MAX_SIZE)
+    return {
+      errorCode: "too_large",
+      error: imageTooLargeMessage(ARTICLE_BODY_IMAGE_SUBJECT, value.size, ARTICLE_IMAGES_MAX_SIZE),
+    };
 
   const extension = articleImageExtension(value.type);
-  if (!extension) return { error: "Inline images must be JPEG, PNG, or WebP." };
+  if (!extension) return { errorCode: "invalid_type", error: "Inline images must be JPEG, PNG, or WebP." };
+
+  const fileError = await validateArticleBodyImage(value);
+  if (fileError) return { errorCode: "invalid_signature", error: fileError };
 
   const supabase = await createClient();
   const objectPath = `${session.userId}/${randomUUID()}.${extension}`;
@@ -182,7 +204,7 @@ export async function uploadArticleBodyImage(formData: FormData): Promise<BodyIm
     contentType: value.type,
     upsert: false,
   });
-  if (error) return { error: "The image could not be uploaded. Try again." };
+  if (error) return { errorCode: "upload_failed", error: "The image could not be uploaded. Try again." };
   return { url: supabase.storage.from(ARTICLE_IMAGES_BUCKET).getPublicUrl(objectPath).data.publicUrl };
 }
 

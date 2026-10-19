@@ -31,6 +31,17 @@ describe("inline body images", () => {
     expect(await validateArticleBodyImage(oversized)).toMatch(/10 MiB or smaller/);
   });
 
+  it("explains the limit and the file size for oversized inline images", async () => {
+    const oversized = new NodeFile([new Uint8Array(ARTICLE_IMAGES_MAX_SIZE + 1)], "large.png", { type: "image/png" });
+    expect(await validateArticleBodyImage(oversized)).toBe("Inline images must be 10 MiB or smaller. This image is 10.1 MiB.");
+  });
+
+  it("accepts a file exactly at the size limit", async () => {
+    const bytes = new Uint8Array(ARTICLE_IMAGES_MAX_SIZE);
+    bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    expect(await validateArticleBodyImage(new NodeFile([bytes], "limit.png", { type: "image/png" }))).toBeNull();
+  });
+
   it("only extracts object paths from this Supabase instance and the body-image bucket", () => {
     const base = "http://127.0.0.1:54321";
     expect(articleBodyImageStoragePath(`${base}/storage/v1/object/public/article-images/user%2Fshot.png`, base)).toBe("user/shot.png");
