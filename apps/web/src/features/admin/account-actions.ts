@@ -79,7 +79,7 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
   if (!(await isAdmin())) return { rows: [], total: 0 };
   const admin = serviceClient();
   const from = (view.page - 1) * PAGE_SIZE;
-  const emailEmbed = view.q.trim() ? "account_auth_lookup!inner(email)" : "account_auth_lookup(email)";
+  const emailEmbed = "account_auth_lookup(email)";
 
   // Deterministic role ordering and email-null-last ordering need computed ranks
   // / null handling, so those two sorts fetch the matched set in slim form
@@ -162,7 +162,7 @@ function applyCriteria(
   const q = view.q.trim();
   if (q) {
     const pattern = q.replace(/[,()<>]/g, "");
-    query.or(`username.ilike.*${pattern}*,account_auth_lookup.email.ilike.*${pattern}*`);
+    query.or(`username.ilike.*${pattern}*,search_email.ilike.*${pattern}*`);
   }
   if (view.role === "reader") {
     query.is("account_roles", null);

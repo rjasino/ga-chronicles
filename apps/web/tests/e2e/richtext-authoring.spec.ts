@@ -30,6 +30,7 @@ test("contributors can author a rich article with an inline image and preview it
   await page.keyboard.press("Home");
   await page.keyboard.press("Shift+End");
   await page.getByRole("button", { name: "Bold" }).click();
+  await expect(editor).toBeFocused();
   await page.keyboard.press("End");
   await expect(page.locator('input[name="body"]')).toHaveValue(/<strong>A bold closing line\.<\/strong>/);
 
@@ -130,16 +131,25 @@ test("bulleted and numbered lists render with visible markers", async ({ page })
   await page.keyboard.type("Second item");
   await page.keyboard.press("Enter");
   await page.keyboard.type("Third item");
-  await page.keyboard.press("Control+A");
+  // The editor keeps a trailing empty paragraph after a list, so select only the three items.
+  const selectItems = async () => {
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Shift+End");
+  };
+  await selectItems();
   await page.getByRole("button", { name: "Bulleted list" }).click();
+  await expect(editor).toBeFocused();
   await expect(editor.locator("ul > li")).toHaveCount(3);
   await expect(editor.locator("ul")).toHaveCSS("list-style-type", "disc");
 
   await page.getByRole("button", { name: "Bulleted list" }).click();
   await expect(editor.locator("ul")).toHaveCount(0);
 
-  await page.keyboard.press("Control+A");
+  await selectItems();
   await page.getByRole("button", { name: "Numbered list" }).click();
+  await expect(editor).toBeFocused();
   await expect(editor.locator("ol > li")).toHaveCount(3);
   await expect(editor.locator("ol")).toHaveCSS("list-style-type", "decimal");
 
