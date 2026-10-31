@@ -128,6 +128,7 @@
   .story__body blockquote { margin: 1.6rem 0; padding: .05rem 1.1rem; border-left: 4px solid var(--yellow); color: var(--muted); font-style: italic; }
   .story__body a { color: var(--blue); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
   .story__body img { display: block; max-width: 100%; height: auto; margin: 1.6rem auto; }
+  .story__body iframe { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; margin: 1.6rem auto; border: 0; }
 
   .rich-editor { display: grid; gap: .6rem; }
   .rich-editor__content-wrap { border: 1px solid var(--field-line); background: var(--white); }
@@ -142,6 +143,7 @@
   .rich-editor__content blockquote { margin: 1rem 0; padding-left: 1rem; border-left: 4px solid var(--yellow); color: var(--muted); font-style: italic; }
   .rich-editor__content a { color: var(--blue); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
   .rich-editor__content img { max-width: 100%; height: auto; }
+  .rich-editor__content iframe { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; margin: 1.6rem auto; border: 0; }
   .rich-editor__content:focus-visible { box-shadow: inset 0 0 0 2px var(--blue); }
   .rich-editor__file { display: none; }
   .rich-toolbar { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; padding: .35rem 0; background: var(--white); }

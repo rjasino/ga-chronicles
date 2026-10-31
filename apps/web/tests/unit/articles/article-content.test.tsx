@@ -52,4 +52,23 @@ describe("ArticleContent byline and read time", () => {
     const { container } = render(<ArticleContent article={article} />);
     expect(container.querySelector(".story__meta")).toBeNull();
   });
+
+  it("renders body links in a new tab and includes approved video embeds without changing site links", () => {
+    const articleWithEmbed = {
+      ...article,
+      body: '<p><a href="https://example.test" target="_self">Citation</a></p><div data-youtube-video=""><iframe src="https://www.youtube.com/embed/abc123"></iframe></div>',
+    };
+    const { container } = render(
+      <>
+        <a href="/home">Site navigation</a>
+        <ArticleContent article={articleWithEmbed} />
+      </>,
+    );
+    const body = container.querySelector(".story__body")!;
+    expect(body.querySelector("a")).toHaveAttribute("target", "_blank");
+    expect(body.querySelector("a")).toHaveAttribute("rel", "noopener noreferrer");
+    expect(body.querySelector("iframe")).toHaveAttribute("src", "https://www.youtube.com/embed/abc123");
+    expect(body.querySelector("iframe")).toHaveAttribute("loading", "lazy");
+    expect(screen.getByRole("link", { name: "Site navigation" })).not.toHaveAttribute("target");
+  });
 });

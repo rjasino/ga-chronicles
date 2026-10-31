@@ -98,6 +98,25 @@ describe("RichTextEditor", () => {
     expect(input).toHaveValue("https://");
   });
 
+  it("inserts a YouTube watch URL as an inline embed in the hidden body", async () => {
+    const { container } = await renderEditor("<p>Start</p>");
+    fireEvent.click(within(container).getByRole("button", { name: "Insert video" }));
+    const input = within(container).getByRole("textbox", { name: "Video URL" });
+    fireEvent.change(input, { target: { value: "https://www.youtube.com/watch?v=abc123" } });
+    fireEvent.click(within(container).getByRole("group", { name: "Video settings" }).querySelector("button")!);
+    await waitFor(() => expect(hiddenBody(container).value).toMatch(/src="https:\/\/www\.youtube-nocookie\.com\/embed\/abc123(?:\?[^\"]*)?"/));
+    expect(hiddenBody(container).value).toContain("data-youtube-video");
+  });
+
+  it("rejects unsupported video hosts without changing the body", async () => {
+    const { container } = await renderEditor("<p>Start</p>");
+    fireEvent.click(within(container).getByRole("button", { name: "Insert video" }));
+    fireEvent.change(within(container).getByRole("textbox", { name: "Video URL" }), { target: { value: "https://evil.test/video" } });
+    fireEvent.click(within(container).getByRole("group", { name: "Video settings" }).querySelector("button")!);
+    expect(await within(container).findByRole("alert")).toHaveTextContent("Only YouTube video links are supported");
+    expect(hiddenBody(container).value).toBe("<p>Start</p>");
+  });
+
   it("leaves the body unchanged when the link is applied empty", async () => {
     const { container } = await renderEditor("<p>Start</p>");
     fireEvent.click(within(container).getByRole("button", { name: "Link" }));
