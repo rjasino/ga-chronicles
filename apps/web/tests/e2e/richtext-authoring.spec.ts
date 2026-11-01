@@ -147,6 +147,7 @@ test("bulleted and numbered lists render with visible markers", async ({ page })
   await page.getByRole("button", { name: "Bulleted list" }).click();
   await expect(editor.locator("ul")).toHaveCount(0);
 
+  await expect(editor).toBeFocused();
   await selectItems();
   await page.getByRole("button", { name: "Numbered list" }).click();
   await expect(editor).toBeFocused();
