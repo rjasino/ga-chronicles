@@ -116,9 +116,9 @@ describe("RichTextEditor", () => {
     const { container } = await renderEditor("<p>Start</p>");
     fireEvent.click(within(container).getByRole("button", { name: "Insert video" }));
     const input = within(container).getByRole("textbox", { name: "Video URL" });
-    fireEvent.change(input, { target: { value: "https://www.youtube.com/watch?v=abc123" } });
+    fireEvent.change(input, { target: { value: "https://www.youtube.com/watch?v=abc123def45" } });
     fireEvent.click(within(container).getByRole("group", { name: "Video settings" }).querySelector("button")!);
-    await waitFor(() => expect(hiddenBody(container).value).toMatch(/src="https:\/\/www\.youtube-nocookie\.com\/embed\/abc123(?:\?[^\"]*)?"/));
+    await waitFor(() => expect(hiddenBody(container).value).toMatch(/src="https:\/\/www\.youtube-nocookie\.com\/embed\/abc123def45(?:\?[^\"]*)?"/));
     expect(hiddenBody(container).value).toContain("data-youtube-video");
   });
 
