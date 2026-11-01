@@ -16,7 +16,7 @@ test("search narrows the list by username or email", async ({ page }) => {
 
   await page.getByLabel("Search").fill("localmoderator");
   await page.getByRole("button", { name: "Apply filters" }).click();
-  await expect(page).toHaveURL(/\/admin\/users\?q=localmoderator/);
+  await expect(page).toHaveURL(/\/admin\/users\?.*q=localmoderator/);
   await expect(rows.filter({ hasText: "localmoderator" })).toHaveCount(1);
   await expect(rows.filter({ hasText: "localadmin" })).toHaveCount(0);
 
