@@ -73,6 +73,20 @@ describe("RichTextEditor", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
+  it("restores focus to the image button when the upload finishes", async () => {
+    let finish: (value: { error?: string }) => void = () => {};
+    uploadArticleBodyImage.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    const { container } = await renderEditor("<p>Start</p>");
+    const imageButton = within(container).getByRole("button", { name: "Insert image" });
+    const file = new File([new Uint8Array([0xff, 0xd8, 0xff])], "shot.jpg", { type: "image/jpeg" });
+
+    fireEvent.change(container.querySelector('input[name="body_image"]')!, { target: { files: [file] } });
+    await screen.findByRole("dialog");
+    finish({ error: "The image could not be uploaded. Try again." });
+
+    await waitFor(() => expect(imageButton).toHaveFocus());
+  });
+
   it("rejects oversized images before uploading and reports the limit and file size", async () => {
     const { container } = await renderEditor("<p>Start</p>");
     const oversized = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "huge.jpg", { type: "image/jpeg" });
