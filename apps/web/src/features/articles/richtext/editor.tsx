@@ -42,16 +42,22 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const dialog = useRef<HTMLDivElement | null>(null);
   const imageButton = useRef<HTMLButtonElement | null>(null);
+  const restoreImageButtonFocus = useRef(false);
 
   useEffect(() => {
-    if (!uploading) return;
-    const imageButtonElement = imageButton.current;
+    if (!uploading) {
+      if (restoreImageButtonFocus.current) {
+        restoreImageButtonFocus.current = false;
+        imageButton.current?.focus();
+      }
+      return;
+    }
+    restoreImageButtonFocus.current = true;
     const blocked = Array.from(document.body.children).filter((element) => !element.hasAttribute("data-upload-modal"));
     blocked.forEach((element) => element.setAttribute("inert", ""));
     dialog.current?.focus();
     return () => {
       blocked.forEach((element) => element.removeAttribute("inert"));
-      imageButtonElement?.focus();
     };
   }, [uploading]);
 
