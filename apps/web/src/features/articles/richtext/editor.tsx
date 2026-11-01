@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type Ref } from "react";
 import { createPortal } from "react-dom";
+import { isValidYoutubeUrl } from "@tiptap/extension-youtube";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { uploadArticleBodyImage } from "@/features/articles/actions";
 import { ARTICLE_BODY_IMAGE_SUBJECT, ARTICLE_IMAGES_MAX_SIZE, imageTooLargeMessage } from "@/features/articles/body-image";
@@ -39,6 +40,7 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
   const [uploading, setUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [linkDraft, setLinkDraft] = useState<string | null>(null);
+  const [videoDraft, setVideoDraft] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const dialog = useRef<HTMLDivElement | null>(null);
   const imageButton = useRef<HTMLButtonElement | null>(null);
@@ -106,6 +108,7 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
 
   const openLinkForm = () => {
     const current = editor.getAttributes("link").href as string | undefined;
+    setVideoDraft(null);
     setLinkDraft(current ?? "https://");
   };
 
@@ -120,6 +123,24 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
   const removeLink = () => {
     setLinkDraft(null);
     editor.chain().focus().extendMarkRange("link").unsetLink().run();
+  };
+
+  const openVideoForm = () => {
+    setLinkDraft(null);
+    setVideoDraft("https://");
+  };
+
+  const applyVideo = () => {
+    const entered = (videoDraft ?? "").trim();
+    setVideoDraft(null);
+    if (!entered) return;
+    const url = /^https?:\/\//i.test(entered) ? entered : `https://${entered}`;
+    if (!isValidYoutubeUrl(url)) {
+      setImageError("Only YouTube video links are supported. Paste a youtube.com, youtu.be, or youtube-nocookie.com link.");
+      return;
+    }
+    setImageError(null);
+    editor.chain().focus().setYoutubeVideo({ src: url }).run();
   };
 
   return (
@@ -137,6 +158,7 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
         <ToolbarButton label="Block quote" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>❝ Quote</ToolbarButton>
         <ToolbarButton label="Link" active={editor.isActive("link")} onClick={openLinkForm}>🔗 Link</ToolbarButton>
         <span className="rich-toolbar__separator" aria-hidden="true" />
+        <ToolbarButton label="Insert video" active={editor.isActive("youtube")} onClick={openVideoForm}>▶ Video</ToolbarButton>
         <ToolbarButton buttonRef={imageButton} label="Insert image" disabled={uploading} onClick={() => fileInput.current?.click()}>{uploading ? "Uploading…" : "🖼 Image"}</ToolbarButton>
       </div>
       {linkDraft !== null && (
@@ -154,6 +176,23 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
             <Button type="button" purpose="primary" onClick={applyLink}>Apply link</Button>
             <Button type="button" purpose="secondary" onClick={() => setLinkDraft(null)}>Cancel</Button>
             {editor.isActive("link") && <Button type="button" purpose="text" onClick={removeLink}>Remove link</Button>}
+          </div>
+        </div>
+      )}
+      {videoDraft !== null && (
+        <div className="rich-link-form" role="group" aria-label="Video settings" onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            applyVideo();
+          } else if (event.key === "Escape") {
+            event.preventDefault();
+            setVideoDraft(null);
+          }
+        }}>
+          <TextField label="Video URL" value={videoDraft} placeholder="https://www.youtube.com/watch?v=…" autoFocus onChange={(event) => setVideoDraft(event.target.value)} />
+          <div className="rich-link-form__actions">
+            <Button type="button" purpose="primary" onClick={applyVideo}>Insert video</Button>
+            <Button type="button" purpose="secondary" onClick={() => setVideoDraft(null)}>Cancel</Button>
           </div>
         </div>
       )}

@@ -6,6 +6,9 @@ import sanitizeHtml from "sanitize-html";
 // This module owns the detection, conversion, and sanitization logic so the
 // editor, the save action, and the public renderer all agree on the format.
 
+/** Hosts the body may embed. Videos are still provider-restricted to YouTube. */
+export const RICH_VIDEO_IFRAME_HOSTS = ["www.youtube.com", "youtube.com", "www.youtube-nocookie.com", "youtube-nocookie.com"];
+
 /** Allowlist applied to every rich body on save and render. */
 export const RICH_HTML_CONFIG: sanitizeHtml.IOptions = {
   allowedTags: [
@@ -27,17 +30,38 @@ export const RICH_HTML_CONFIG: sanitizeHtml.IOptions = {
     "a",
     "img",
     "br",
+    "div",
+    "iframe",
   ],
   allowedAttributes: {
-    a: ["href", "title"],
+    a: ["href", "title", "target", "rel"],
     img: ["src", "alt", "title"],
+    div: ["data-youtube-video"],
+    iframe: ["src", "width", "height", "title", "allow", "allowfullscreen", "frameborder", "referrerpolicy", "loading"],
   },
   allowedSchemes: ["http", "https"],
   allowedSchemesByTag: {
     a: ["http", "https"],
     img: ["http", "https"],
+    iframe: ["https"],
   },
+  allowedIframeHostnames: RICH_VIDEO_IFRAME_HOSTS,
   allowProtocolRelative: false,
+  // sanitize-html strips an unapproved iframe's src but otherwise keeps the
+  // empty element. Drop that element too so rejected hosts leave no frame.
+  exclusiveFilter: (frame) => frame.tag === "iframe" && !frame.attribs.src,
+  // Applied on save and render so stored and rendered HTML agree: every body
+  // link opens in a new tab, and every approved embed is lazy-loaded.
+  transformTags: {
+    a: (tagName, attribs) => ({
+      tagName,
+      attribs: { ...attribs, target: "_blank", rel: "noopener noreferrer" },
+    }),
+    iframe: (tagName, attribs) => ({
+      tagName,
+      attribs: { ...attribs, loading: "lazy", title: attribs.title || "Embedded video" },
+    }),
+  },
 };
 
 export function sanitizeRichHtml(html: string): string {
@@ -73,13 +97,14 @@ export function plainTextToHtml(body: string): string {
 
 /**
  * True when the body renders meaningful content: at least one visible character
- * of text or at least one inline image. Guards against `""`, whitespace, and the
- * empty rich-editor document `<p></p>` while still accepting image-only bodies.
+ * of text, at least one inline image, or at least one video embed. Guards against
+ * `""`, whitespace, and the empty rich-editor document `<p></p>` while still
+ * accepting image-only and video-only bodies.
  */
 export function richBodyHasContent(body: string): boolean {
   if (!body.trim()) return false;
   const text = body.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-  return text.length > 0 || /<img(?:\s|>)/i.test(body);
+  return text.length > 0 || /<img(?:\s|>)|<iframe(?:\s|>)/i.test(body);
 }
 
 /**
@@ -107,8 +132,9 @@ export function richBodyToPlainText(body: string): string {
 /**
  * Renders a stored article body into safe HTML for readers. Legacy plain-text
  * bodies are converted to paragraphs; rich bodies are sanitized again on render
- * (defense-in-depth) and body images are marked lazy so they do not delay the
- * rest of the article.
+ * (defense-in-depth), and body images are marked lazy so they do not delay the
+ * rest of the article. Embeds are lazy-loaded and links get `target`/`rel` by the
+ * sanitizer's transform rules, so stored and rendered bodies agree.
  */
 export function renderRichBody(body: string): string {
   if (isPlainTextBody(body)) {

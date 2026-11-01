@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RICH_HTML_CONFIG, isPlainTextBody, plainTextParagraphs, plainTextToHtml, renderRichBody, richBodyToPlainText, sanitizeRichHtml } from "@/features/articles/richtext/rich-html";
+import { RICH_HTML_CONFIG, isPlainTextBody, plainTextParagraphs, plainTextToHtml, renderRichBody, richBodyHasContent, richBodyToPlainText, sanitizeRichHtml } from "@/features/articles/richtext/rich-html";
 
 describe("richBodyToPlainText", () => {
   it("returns the words of a rich body without tags", () => {
@@ -31,12 +31,12 @@ describe("rich body sanitization", () => {
     expect(output).toContain("<h2>Subhead</h2>");
     expect(output).toContain("<ul><li>One</li><li>Two</li></ul>");
     expect(output).toContain("<blockquote>A quote</blockquote>");
-    expect(output).toContain('<a href="https://example.test">link</a>');
+    expect(output).toContain('<a href="https://example.test" target="_blank" rel="noopener noreferrer">link</a>');
   });
 
   it("removes scripts, event handlers, styles, and not-allowed tags", () => {
     const output = sanitizeRichHtml(
-      '<script>alert(1)</script><p style="color:red" onclick="x()">Text<img src="https://example.test/a.png" onerror="alert(1)" width="50"></p><iframe src="https://evil.test"></iframe>',
+      '<script>alert(1)</script><p style="color:red" onclick="x()">Text<img src="https://example.test/a.png" onerror="alert(1)" width="50"></p><iframe src="https://evil.test/embed/abc"></iframe>',
     );
     expect(output).not.toContain("<script");
     expect(output).not.toContain("onclick");
@@ -46,16 +46,50 @@ describe("rich body sanitization", () => {
     expect(output).toContain('<img src="https://example.test/a.png"');
   });
 
-  it("blocks unsafe URL schemes and protocol-relative sources", () => {
-    expect(sanitizeRichHtml('<a href="javascript:alert(1)">x</a>')).toBe('<a>x</a>');
-    expect(sanitizeRichHtml('<a href="//example.test/x">x</a>')).toBe("<a>x</a>");
+  it("blocks unsafe link and image URL schemes and protocol-relative sources", () => {
+    expect(sanitizeRichHtml('<a href="javascript:alert(1)">x</a>')).toBe('<a target="_blank" rel="noopener noreferrer">x</a>');
+    expect(sanitizeRichHtml('<a href="//example.test/x">x</a>')).toBe('<a target="_blank" rel="noopener noreferrer">x</a>');
     expect(sanitizeRichHtml('<img src="data:image/png;base64,AAAA">')).toBe("<img />");
   });
 
-  it("exposes an allowlist config with explicit image and link attributes", () => {
+  it("keeps YouTube embeds while rejecting other hosts, unsafe schemes, and relative sources", () => {
+    const youtube = sanitizeRichHtml('<div data-youtube-video=""><iframe src="https://www.youtube.com/embed/abc123" width="640" height="360" title="Video"></iframe></div>');
+    const noCookie = sanitizeRichHtml('<div data-youtube-video=""><iframe src="https://www.youtube-nocookie.com/embed/abc123"></iframe></div>');
+    expect(youtube).toContain('<iframe src="https://www.youtube.com/embed/abc123"');
+    expect(youtube).toContain('loading="lazy"');
+    expect(youtube).toContain('title="Video"');
+    expect(noCookie).toContain('src="https://www.youtube-nocookie.com/embed/abc123"');
+    expect(sanitizeRichHtml('<iframe src="https://evil.test/embed/abc123"></iframe>')).not.toContain("<iframe");
+    expect(sanitizeRichHtml('<iframe src="javascript:alert(1)"></iframe>')).not.toContain("<iframe");
+    expect(sanitizeRichHtml('<iframe src="data:text/html,abc"></iframe>')).not.toContain("<iframe");
+    expect(sanitizeRichHtml('<iframe src="//www.youtube.com/embed/abc123"></iframe>')).not.toContain("<iframe");
+  });
+
+  it("forces safe new-tab attributes on every body link and is idempotent", () => {
+    const input = '<p><a href="https://example.test" target="_self" rel="opener">first</a><a href="https://second.test" target="named">second</a></p>';
+    const output = sanitizeRichHtml(input);
+    expect(output).toContain('href="https://example.test" target="_blank" rel="noopener noreferrer"');
+    expect(output).toContain('href="https://second.test" target="_blank" rel="noopener noreferrer"');
+    expect(sanitizeRichHtml(output)).toBe(output);
+  });
+
+  it("exposes an allowlist config with explicit image, link, and video attributes", () => {
     const tags = RICH_HTML_CONFIG.allowedTags ?? [];
-    expect(tags).toEqual(expect.arrayContaining(["p", "h1", "strong", "em", "ul", "ol", "li", "blockquote", "a", "img"]));
-    expect(RICH_HTML_CONFIG.allowedAttributes).toMatchObject({ a: ["href", "title"], img: ["src", "alt", "title"] });
+    expect(tags).toEqual(expect.arrayContaining(["p", "h1", "strong", "em", "ul", "ol", "li", "blockquote", "a", "img", "div", "iframe"]));
+    expect(RICH_HTML_CONFIG.allowedAttributes).toMatchObject({
+      a: ["href", "title", "target", "rel"],
+      img: ["src", "alt", "title"],
+      div: ["data-youtube-video"],
+      iframe: expect.arrayContaining(["src", "width", "height", "title", "allow", "allowfullscreen", "frameborder", "referrerpolicy"]),
+    });
+    expect(RICH_HTML_CONFIG.allowedIframeHostnames).toContain("www.youtube.com");
+  });
+});
+
+describe("richBodyHasContent", () => {
+  it("accepts video-only bodies and still rejects empty content", () => {
+    expect(richBodyHasContent('<div data-youtube-video=""><iframe src="https://www.youtube.com/embed/abc123"></iframe></div>')).toBe(true);
+    expect(richBodyHasContent("<p></p>")).toBe(false);
   });
 });
 
@@ -86,6 +120,14 @@ describe("renderRichBody", () => {
     expect(output).toContain("<p>Hi</p>");
     expect(output).toContain('loading="lazy"');
     expect(output).toMatch(/<img[^>]*src="https:\/\/a.test\/i.png"/);
+  });
+
+  it("applies safe links and lazy loading to approved video embeds", () => {
+    const output = renderRichBody('<p><a href="https://example.test" target="_self">Read more</a></p><div data-youtube-video=""><iframe src="https://www.youtube.com/embed/abc123"></iframe></div>');
+    expect(output).toContain('href="https://example.test" target="_blank" rel="noopener noreferrer"');
+    expect(output).toContain('<iframe src="https://www.youtube.com/embed/abc123"');
+    expect(output).toContain('loading="lazy"');
+    expect(renderRichBody(output)).toBe(output);
   });
 
   it("converts legacy plain text to paragraphs", () => {

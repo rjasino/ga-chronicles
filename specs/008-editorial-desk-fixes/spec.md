@@ -4,7 +4,9 @@
 
 **Created**: 2026-10-19
 
-**Status**: In Progress
+**Completed**: 2026-10-20
+
+**Status**: Done
 
 **Input**: User description: "Fix UI bugs and improve the editorial function: article card previews show raw HTML tags, the 'Editorial desk' label is not a heading, the rich text toolbar is not sticky, link insertion gives no visible feedback until save, lists only indent instead of showing bullets or numbers, inline image uploads have no blocking loading state, and oversized image uploads have no clear error message."
 

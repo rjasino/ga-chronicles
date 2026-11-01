@@ -23,13 +23,13 @@ This feature extends the existing web application's authoring and reading journe
 - The public article page renders the body server-side: formatted text and inline images appear exactly as authored, with no reader-side editor JavaScript.
 - Every inline image fits the width of the reading column on desktop and mobile viewports, preserves its aspect ratio, and causes no overflow or horizontal scrolling.
 - Images below the initial viewport do not block the rest of the article from loading.
-- Only approved HTML is ever rendered: no scripts, event handlers, embedded frames, or unsafe markup from authored content execute for readers.
+- Only approved HTML is ever rendered: no scripts, event handlers, arbitrary embedded frames, or unsafe markup from authored content execute for readers. YouTube video embeds are the sole frame exception and are restricted to allowlisted YouTube hosts over HTTPS.
 - A legacy article whose body predates this feature renders as readable plain paragraphs, unchanged and with no content re-entry.
 
 ## Content safety
 
 - Authored body HTML is treated as untrusted input. Sanitization is applied on save (canonical stored form) and again when a server component renders the body for readers.
-- The renderer outputs only an allowlisted set of content: paragraphs, headings, bold/italic, ordered/unordered lists and items, block quotes, links (http/https only), and images carrying a source and alt text.
+- The renderer outputs only an allowlisted set of content: paragraphs, headings, bold/italic, ordered/unordered lists and items, block quotes, links (http/https only, always opening in a new tab with `rel="noopener noreferrer"`), images carrying a source and alt text, and YouTube-only video embeds from allowlisted HTTPS hosts.
 - Links and images originate only from allowed protocols; readers never receive embedded user-authored scripts.
 
 ## Lifecycle and cleanup
