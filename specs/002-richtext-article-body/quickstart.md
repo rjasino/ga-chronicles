@@ -16,8 +16,8 @@ From the repository root:
 
 ```sh
 npm --prefix apps/web install
-npx supabase start
-npx supabase db reset
+npm --prefix apps/web run supabase:start
+npm --prefix apps/web run supabase:reset
 npm --prefix apps/web run dev
 ```
 
@@ -69,12 +69,12 @@ Validated on 2026-10-03 with Node 24, Next.js 16.3, Tiptap v3, and local Supabas
 
 ## Verify local inline-image storage
 
-With local Supabase running, open Supabase Studio at <http://127.0.0.1:54323> and select **Storage → article-images**. Inserted images appear under `<user-id>/<uuid>.<ext>`. The `article_body_images` table (via **Table Editor**) lists the per-article references. Removing an image and resaving should remove its object from the bucket once no reference remains. The saved article body contains public storage URLs of the form `http://127.0.0.1:54321/storage/v1/object/public/article-images/<user-id>/<uuid>.<ext>`.
+With local Supabase running, open Supabase Studio at <http://127.0.0.1:55323> and select **Storage → article-images**. Inserted images appear under `<user-id>/<uuid>.<ext>`. The `article_body_images` table (via **Table Editor**) lists the per-article references. Removing an image and resaving should remove its object from the bucket once no reference remains. The saved article body contains public storage URLs of the form `http://127.0.0.1:55321/storage/v1/object/public/article-images/<user-id>/<uuid>.<ext>`.
 
 ## Shutdown
 
 ```sh
-npx supabase stop
+npm --prefix apps/web run supabase:stop
 ```
 
 See [data-model.md](data-model.md) for entities/invariants and [the rich body contract](contracts/rich-body-contract.md) for expected observable behavior.

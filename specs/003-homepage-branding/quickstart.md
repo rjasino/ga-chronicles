@@ -16,7 +16,8 @@ From the repository root:
 
 ```sh
 npm --prefix apps/web install
-npx supabase start && npx supabase db reset
+npm --prefix apps/web run supabase:start
+npm --prefix apps/web run supabase:reset
 npm --prefix apps/web run dev
 ```
 
@@ -67,7 +68,7 @@ The neon GA logo could not be visually previewed in this environment. After the 
 ## Shutdown
 
 ```sh
-npx supabase stop
+npm --prefix apps/web run supabase:stop
 ```
 
 See [data-model.md](data-model.md) (no data scope) and [the branding contract](contracts/branding-contract.md) for the observable behavior being validated.

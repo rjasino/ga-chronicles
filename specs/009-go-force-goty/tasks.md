@@ -23,7 +23,7 @@ description: "Implementation tasks for Go Force GOTY"
 
 **Purpose**: Honor the installed Next.js version's local guidance before editing application routes or actions.
 
-- [ ] T001 [P] Review the installed Next.js 16 App Router, Server Actions, and cache revalidation guidance under `apps/web/node_modules/next/dist/docs/` before implementing Go Force routes or mutations.
+- [X] T001 [P] Review the installed Next.js 16 App Router, Server Actions, and cache revalidation guidance under `apps/web/node_modules/next/dist/docs/` before implementing Go Force routes or mutations.
 
 ---
 
@@ -31,11 +31,11 @@ description: "Implementation tasks for Go Force GOTY"
 
 **Purpose**: Establish shared database, validation, and identity boundaries that all stories require.
 
-- [ ] T002 [P] Add pgTAP tests for Go Force admin, player, viewer, and private-channel access in `supabase/tests/database/go-force-access.test.sql`.
-- [ ] T003 [P] Add unit tests for Go Force input validation and account/session access rules in `apps/web/tests/unit/go-force/schemas.test.ts` and `apps/web/tests/unit/go-force/access.test.ts`.
-- [ ] T004 Create `supabase/migrations/0011_go-force-core.sql` with database entities, constraints, and RLS for annual games, page settings, session snapshots, participants, rounds, selections, game votes, final ballots, results, and private Realtime access. Apply the canonical constraints from `data-model.md`: `Annual Game Entry.game title`, `Annual Game Entry.GOTY year`, `Annual Game Entry.eligibility state`, `Go Force Page Settings.page visibility`, `Session.lifecycle status`, `Session Participant.account identity`, `Session Game Snapshot.title snapshot`, `Round.round number`, `Round.go limit per participant`, `Game Selection.selection uniqueness`, `Game Vote.choice`, `Final Ballot Vote.selected finalist`, `Final Ballot Vote.optional remark`, and `GOTY Result.winner games`.
-- [ ] T005 Create shared Go Force state and input schemas in `apps/web/src/features/go-force/types.ts` and `apps/web/src/features/go-force/schemas.ts`, using `data-model.md` for `Session.lifecycle status`, `Round.round number`, `Round.go limit per participant`, `Game Vote.choice`, `Final Ballot Vote.selected finalist`, and `GOTY Result.winner games`.
-- [ ] T006 Implement shared account, admin, game-master, and session-membership checks in `apps/web/src/features/go-force/access.ts`, reusing the existing verified-session and role helpers.
+- [X] T002 [P] Add pgTAP tests for Go Force admin, player, viewer, and private-channel access in `supabase/tests/database/go-force-access.test.sql`.
+- [X] T003 [P] Add unit tests for Go Force input validation and account/session access rules in `apps/web/tests/unit/go-force/schemas.test.ts` and `apps/web/tests/unit/go-force/access.test.ts`.
+- [X] T004 Create `supabase/migrations/0011_go-force-core.sql` with database entities, constraints, and RLS for annual games, page settings, session snapshots, participants, rounds, selections, game votes, final ballots, results, and private Realtime access. Apply the canonical constraints from `data-model.md`: `Annual Game Entry.game title`, `Annual Game Entry.GOTY year`, `Annual Game Entry.eligibility state`, `Go Force Page Settings.page visibility`, `Session.lifecycle status`, `Session Participant.account identity`, `Session Game Snapshot.title snapshot`, `Round.round number`, `Round.go limit per participant`, `Game Selection.selection uniqueness`, `Game Vote.choice`, `Final Ballot Vote.selected finalist`, `Final Ballot Vote.optional remark`, and `GOTY Result.winner games`.
+- [X] T005 Create shared Go Force state and input schemas in `apps/web/src/features/go-force/types.ts` and `apps/web/src/features/go-force/schemas.ts`, using `data-model.md` for `Session.lifecycle status`, `Round.round number`, `Round.go limit per participant`, `Game Vote.choice`, `Final Ballot Vote.selected finalist`, and `GOTY Result.winner games`.
+- [X] T006 Implement shared account, admin, game-master, and session-membership checks in `apps/web/src/features/go-force/access.ts`, reusing the existing verified-session and role helpers.
 
 **Checkpoint**: Database access boundaries, shared types, and identity checks are ready before story work.
 
@@ -49,18 +49,18 @@ description: "Implementation tasks for Go Force GOTY"
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Add Vitest coverage for round quotas, game advancement, abstentions, empty-shortlist stop, 80% completion, and tied winners in `apps/web/tests/unit/go-force/rules.test.ts`, using `data-model.md` fields `Round.go limit per participant`, `Game Vote.choice`, `Game Selection.advancement outcome`, `Session.vote completion percentage`, and `GOTY Result.winner games`.
-- [ ] T008 [P] [US1] Add Playwright coverage for roster locking, roulette selection, player voting, facilitator reveal, and three-round completion in `apps/web/tests/e2e/go-force-session.spec.ts`.
+- [X] T007 [P] [US1] Add Vitest coverage for round quotas, game advancement, abstentions, empty-shortlist stop, 80% completion, and tied winners in `apps/web/tests/unit/go-force/rules.test.ts`, using `data-model.md` fields `Round.go limit per participant`, `Game Vote.choice`, `Game Selection.advancement outcome`, `Session.vote completion percentage`, and `GOTY Result.winner games`.
+- [X] T008 [P] [US1] Add Playwright coverage for roster locking, roulette selection, player voting, facilitator reveal, and three-round completion in `apps/web/tests/e2e/go-force-session.spec.ts`.
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement pure session and round rules in `apps/web/src/features/go-force/rules.ts`, applying `data-model.md` constraints for `Round.go limit per participant`, `Game Vote.choice`, `Game Selection.advancement outcome`, and `Session.vote completion percentage`.
-- [ ] T010 [US1] Implement session creation and start actions in `apps/web/src/features/go-force/session-actions.ts`; freeze the eligible-game snapshot and account roster at start using `data-model.md` fields `Session.lifecycle status`, `Session Participant.account identity`, and `Session Game Snapshot.title snapshot`.
-- [ ] T011 [US1] Implement roulette draw, vote submission, ballot close, abstention recording, and round transition actions in `apps/web/src/features/go-force/game-actions.ts`, following `data-model.md` constraints for `Game Selection.selection uniqueness`, `Game Vote.choice`, and `Round.go limit per participant`.
-- [ ] T012 [US1] Implement final-ballot submission, vote completion calculation, 80% completion status, tied co-winners, and empty-session outcome handling in `apps/web/src/features/go-force/ballot-actions.ts`, following `data-model.md` fields `Final Ballot Vote.selected finalist`, `Final Ballot Vote.optional remark`, `Session.vote completion percentage`, and `GOTY Result.winner games`.
-- [ ] T013 [US1] Add private Realtime Broadcast publishing and subscription handling in `apps/web/src/features/go-force/realtime.ts`; persist vote state before broadcasting and withhold individual votes until a selection is closed.
-- [ ] T014 [US1] Build the player vote screen and route in `apps/web/src/app/go-force/session/[sessionId]/page.tsx` and `apps/web/src/components/go-force/player-session.tsx`, showing only the active selection and the signed-in player's own pending vote.
-- [ ] T015 [US1] Build the game-master session screen in `apps/web/src/app/admin/go-force/sessions/[sessionId]/page.tsx` and `apps/web/src/components/go-force/facilitator-session.tsx`, including roster confirmation, roulette control, ballot close, and the post-close group and individual vote display.
+- [X] T009 [US1] Implement pure session and round rules in `apps/web/src/features/go-force/rules.ts`, applying `data-model.md` constraints for `Round.go limit per participant`, `Game Vote.choice`, `Game Selection.advancement outcome`, and `Session.vote completion percentage`.
+- [X] T010 [US1] Implement session creation and start actions in `apps/web/src/features/go-force/session-actions.ts`; freeze the eligible-game snapshot and account roster at start using `data-model.md` fields `Session.lifecycle status`, `Session Participant.account identity`, and `Session Game Snapshot.title snapshot`.
+- [X] T011 [US1] Implement roulette draw, vote submission, ballot close, abstention recording, and round transition actions in `apps/web/src/features/go-force/game-actions.ts`, following `data-model.md` constraints for `Game Selection.selection uniqueness`, `Game Vote.choice`, and `Round.go limit per participant`.
+- [X] T012 [US1] Implement final-ballot submission, vote completion calculation, 80% completion status, tied co-winners, and empty-session outcome handling in `apps/web/src/features/go-force/ballot-actions.ts`, following `data-model.md` fields `Final Ballot Vote.selected finalist`, `Final Ballot Vote.optional remark`, `Session.vote completion percentage`, and `GOTY Result.winner games`.
+- [X] T013 [US1] Add private Realtime Broadcast publishing and subscription handling in `apps/web/src/features/go-force/realtime.ts`; persist vote state before broadcasting and withhold individual votes until a selection is closed.
+- [X] T014 [US1] Build the player vote screen and route in `apps/web/src/app/go-force/session/[sessionId]/page.tsx` and `apps/web/src/components/go-force/player-session.tsx`, showing only the active selection and the signed-in player's own pending vote.
+- [X] T015 [US1] Build the game-master session screen in `apps/web/src/app/admin/go-force/sessions/[sessionId]/page.tsx` and `apps/web/src/components/go-force/facilitator-session.tsx`, including roster confirmation, roulette control, ballot close, and the post-close group and individual vote display.
 
 **Checkpoint**: US1 is independently usable with an already populated eligible list.
 
@@ -74,14 +74,14 @@ description: "Implementation tasks for Go Force GOTY"
 
 ### Tests for User Story 2
 
-- [ ] T016 [P] [US2] Add Vitest tests for annual-game and visibility form validation in `apps/web/tests/unit/go-force/admin-schemas.test.ts`, referencing `data-model.md` fields `Annual Game Entry.game title`, `Annual Game Entry.GOTY year`, `Annual Game Entry.eligibility state`, and `Go Force Page Settings.page visibility`.
-- [ ] T017 [P] [US2] Add Playwright coverage for admin visibility toggles, annual list maintenance, and no-redeployment updates in `apps/web/tests/e2e/go-force-admin.spec.ts`.
+- [X] T016 [P] [US2] Add Vitest tests for annual-game and visibility form validation in `apps/web/tests/unit/go-force/admin-schemas.test.ts`, referencing `data-model.md` fields `Annual Game Entry.game title`, `Annual Game Entry.GOTY year`, `Annual Game Entry.eligibility state`, and `Go Force Page Settings.page visibility`.
+- [X] T017 [P] [US2] Add Playwright coverage for admin visibility toggles, annual list maintenance, and no-redeployment updates in `apps/web/tests/e2e/go-force-admin.spec.ts`.
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Implement admin game-list and visibility queries with validation in `apps/web/src/features/go-force/admin-queries.ts` and `apps/web/src/features/go-force/admin-schemas.ts`, following `data-model.md` constraints for `Annual Game Entry.game title`, `Annual Game Entry.GOTY year`, `Annual Game Entry.eligibility state`, and `Go Force Page Settings.page visibility`.
-- [ ] T019 [US2] Implement admin-only add/edit/remove game and page-visibility actions in `apps/web/src/features/go-force/admin-actions.ts`; persist changes and revalidate the Go Force public/admin routes without redeployment, preserving started-session snapshots per `data-model.md` entity `Session Game Snapshot`.
-- [ ] T020 [US2] Build the admin Go Force page and annual game-list/visibility forms in `apps/web/src/app/admin/go-force/page.tsx` and `apps/web/src/components/go-force/admin-controls.tsx`.
+- [X] T018 [US2] Implement admin game-list and visibility queries with validation in `apps/web/src/features/go-force/admin-queries.ts` and `apps/web/src/features/go-force/admin-schemas.ts`, following `data-model.md` constraints for `Annual Game Entry.game title`, `Annual Game Entry.GOTY year`, `Annual Game Entry.eligibility state`, and `Go Force Page Settings.page visibility`.
+- [X] T019 [US2] Implement admin-only add/edit/remove game and page-visibility actions in `apps/web/src/features/go-force/admin-actions.ts`; persist changes and revalidate the Go Force public/admin routes without redeployment, preserving started-session snapshots per `data-model.md` entity `Session Game Snapshot`.
+- [X] T020 [US2] Build the admin Go Force page and annual game-list/visibility forms in `apps/web/src/app/admin/go-force/page.tsx` and `apps/web/src/components/go-force/admin-controls.tsx`.
 
 **Checkpoint**: US2 is independently usable to prepare and publish Go Force content before a session starts.
 
@@ -95,12 +95,12 @@ description: "Implementation tasks for Go Force GOTY"
 
 ### Tests for User Story 3
 
-- [ ] T021 [P] [US3] Add Playwright coverage for hidden, incomplete, completed, and published result states in `apps/web/tests/e2e/go-force-results.spec.ts`.
+- [X] T021 [P] [US3] Add Playwright coverage for hidden, incomplete, completed, and published result states in `apps/web/tests/e2e/go-force-results.spec.ts`.
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Implement completed-session results queries and public visibility filtering in `apps/web/src/features/go-force/results-queries.ts`, using `data-model.md` fields `Session.lifecycle status`, `GOTY Result.winner games`, `GOTY Result.final vote totals`, and `GOTY Result.result-page visibility`.
-- [ ] T023 [US3] Build the separate post-session results page in `apps/web/src/app/go-force/results/[sessionId]/page.tsx` and `apps/web/src/components/go-force/results-page.tsx`, displaying the recorded vote history, round results, finalists, winners, and submitted remarks only after the session is complete and visible.
+- [X] T022 [US3] Implement completed-session results queries and public visibility filtering in `apps/web/src/features/go-force/results-queries.ts`, using `data-model.md` fields `Session.lifecycle status`, `GOTY Result.winner games`, `GOTY Result.final vote totals`, and `GOTY Result.result-page visibility`.
+- [X] T023 [US3] Build the separate post-session results page in `apps/web/src/app/go-force/results/[sessionId]/page.tsx` and `apps/web/src/components/go-force/results-page.tsx`, displaying the recorded vote history, round results, finalists, winners, and submitted remarks only after the session is complete and visible.
 
 **Checkpoint**: US3 is independently verifiable against a completed session fixture and an admin-controlled visibility state.
 
@@ -110,9 +110,11 @@ description: "Implementation tasks for Go Force GOTY"
 
 **Purpose**: Meet the release requirements for accessibility, performance, and the December 2026 live event.
 
-- [ ] T024 [P] Add keyboard, responsive-layout, and screen-reader checks for player and facilitator screens in `apps/web/tests/e2e/go-force-accessibility.spec.ts`.
+- [X] T024 [P] Add keyboard, responsive-layout, and screen-reader checks for player and facilitator screens in `apps/web/tests/e2e/go-force-accessibility.spec.ts`.
 - [ ] T025 Rehearse a full session with the invited roster and record join time, update latency, and reconnect recovery in `specs/009-go-force-goty/quickstart.md` before the live event.
-- [ ] T026 Run the Go Force unit, database, E2E, typecheck, and lint commands from `apps/web/package.json`; fix failures in the affected `apps/web/` or `supabase/` files before release.
+  - Pending human rehearsal: the invited roster is external to the implementation. A measurement table and procedure are ready in `quickstart.md`.
+- [X] T026 Run the Go Force unit, database, E2E, typecheck, and lint commands from `apps/web/package.json`; fix failures in the affected `apps/web/` or `supabase/` files before release.
+  - Verified: 186 unit tests, 96 database tests, 4 Go Force Playwright journeys, typecheck, lint, and production build pass. A full-repository E2E run still reports pre-existing visual-baseline drift and two TipTap richtext checks outside the Go Force feature area.
 
 ---
 

@@ -13,8 +13,8 @@ This guide validates the migration end to end. It does not contain implementatio
 Do this before any styling change, on the current code.
 
 ```powershell
-npx supabase start
-npx supabase db reset
+npm --prefix apps/web run supabase:start
+npm --prefix apps/web run supabase:reset
 cd apps/web
 npm run dev
 ```

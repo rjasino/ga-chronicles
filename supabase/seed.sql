@@ -144,3 +144,73 @@ cross join lateral (
 ) as grants(role)
 where grants.role is not null
 on conflict (account_id, role) do nothing;
+
+-- Go Force GOTY local content. The page starts visible so the admin, session,
+-- and results journeys have deterministic annual-list fixtures after a reset.
+insert into public.go_force_page_settings (id, page_visible) values (true, true)
+on conflict (id) do update set page_visible = excluded.page_visible;
+
+insert into public.go_force_annual_games (id, goty_year, title, eligibility_state, display_order) values
+  ('50000000-0000-4000-8000-000000000001', 2026, 'Hades II', 'eligible', 1),
+  ('50000000-0000-4000-8000-000000000002', 2026, 'Balatro', 'eligible', 2),
+  ('50000000-0000-4000-8000-000000000003', 2026, 'Animal Well', 'eligible', 3),
+  ('50000000-0000-4000-8000-000000000004', 2026, 'Neva', 'eligible', 4),
+  ('50000000-0000-4000-8000-000000000005', 2025, 'Past Year Pick', 'ineligible', 1),
+  ('50000000-0000-4000-8000-000000000006', 2029, 'Accessibility Fixture One', 'eligible', 1),
+  ('50000000-0000-4000-8000-000000000007', 2029, 'Accessibility Fixture Two', 'eligible', 2)
+on conflict (id) do nothing;
+
+-- Completed Go Force fixture for results-page journeys. The result starts hidden
+-- so the admin publication toggle can be exercised end to end.
+insert into public.go_force_sessions (id, goty_year, game_master_id, status, started_at, completed_at, vote_completion_percentage)
+values ('60000000-0000-4000-8000-000000000001', 2025, '10000000-0000-4000-8000-000000000004', 'complete', now() - interval '2 days', now() - interval '2 days', 100)
+on conflict (id) do nothing;
+
+insert into public.go_force_session_participants (session_id, account_id, display_name_snapshot, roster_order) values
+  ('60000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'Local Reader', 1),
+  ('60000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000002', 'Local Contributor', 2)
+on conflict (session_id, account_id) do nothing;
+
+insert into public.go_force_session_games (id, session_id, title_snapshot, source_year, display_order) values
+  ('61000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', 'E2E Past Winner', 2025, 1),
+  ('61000000-0000-4000-8000-000000000002', '60000000-0000-4000-8000-000000000001', 'E2E Runner Up', 2025, 2)
+on conflict (id) do nothing;
+
+insert into public.go_force_rounds (id, session_id, round_number, status, go_limit, started_at, ended_at) values
+  ('62000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', 1, 'complete', 3, now() - interval '2 days', now() - interval '2 days'),
+  ('62000000-0000-4000-8000-000000000002', '60000000-0000-4000-8000-000000000001', 2, 'complete', 2, now() - interval '2 days', now() - interval '2 days'),
+  ('62000000-0000-4000-8000-000000000003', '60000000-0000-4000-8000-000000000001', 3, 'complete', 1, now() - interval '2 days', now() - interval '2 days')
+on conflict (id) do nothing;
+
+insert into public.go_force_selections (id, round_id, session_game_id, selection_order, selected_at, voting_closed_at, advancement_outcome) values
+  ('63000000-0000-4000-8000-000000000001', '62000000-0000-4000-8000-000000000001', '61000000-0000-4000-8000-000000000001', 1, now() - interval '2 days', now() - interval '2 days', 'advanced'),
+  ('63000000-0000-4000-8000-000000000002', '62000000-0000-4000-8000-000000000001', '61000000-0000-4000-8000-000000000002', 2, now() - interval '2 days', now() - interval '2 days', 'advanced'),
+  ('63000000-0000-4000-8000-000000000003', '62000000-0000-4000-8000-000000000002', '61000000-0000-4000-8000-000000000001', 1, now() - interval '2 days', now() - interval '2 days', 'advanced'),
+  ('63000000-0000-4000-8000-000000000004', '62000000-0000-4000-8000-000000000002', '61000000-0000-4000-8000-000000000002', 2, now() - interval '2 days', now() - interval '2 days', 'eliminated'),
+  ('63000000-0000-4000-8000-000000000005', '62000000-0000-4000-8000-000000000003', '61000000-0000-4000-8000-000000000001', 1, now() - interval '2 days', now() - interval '2 days', 'advanced'),
+  ('63000000-0000-4000-8000-000000000006', '62000000-0000-4000-8000-000000000003', '61000000-0000-4000-8000-000000000002', 2, now() - interval '2 days', now() - interval '2 days', 'eliminated')
+on conflict (id) do nothing;
+
+insert into public.go_force_game_votes (selection_id, participant_account_id, choice, submitted_at, closed_at) values
+  ('63000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000002', 'go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001', 'go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000002', 'go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000003', '10000000-0000-4000-8000-000000000001', 'go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000003', '10000000-0000-4000-8000-000000000002', 'go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000004', '10000000-0000-4000-8000-000000000001', 'no-go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000004', '10000000-0000-4000-8000-000000000002', 'no-go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000005', '10000000-0000-4000-8000-000000000001', 'go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000005', '10000000-0000-4000-8000-000000000002', 'go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000006', '10000000-0000-4000-8000-000000000001', 'no-go', now() - interval '2 days', now() - interval '2 days'),
+  ('63000000-0000-4000-8000-000000000006', '10000000-0000-4000-8000-000000000002', 'no-go', now() - interval '2 days', now() - interval '2 days')
+on conflict (selection_id, participant_account_id) do nothing;
+
+insert into public.go_force_final_ballot_votes (session_id, participant_account_id, finalist_game_id, remark, submitted_at, closed_at) values
+  ('60000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', '61000000-0000-4000-8000-000000000001', 'A year-defining world.', now() - interval '2 days', now() - interval '2 days'),
+  ('60000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000002', '61000000-0000-4000-8000-000000000001', 'The one I kept replaying.', now() - interval '2 days', now() - interval '2 days')
+on conflict (session_id, participant_account_id) do nothing;
+
+insert into public.go_force_results (id, session_id, winner_game_ids, final_vote_totals, results_visible, published_at) values
+  ('64000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', array['61000000-0000-4000-8000-000000000001']::uuid[], '{"61000000-0000-4000-8000-000000000001": 2}'::jsonb, false, null)
+on conflict (session_id) do nothing;
