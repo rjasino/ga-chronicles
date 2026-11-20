@@ -21,6 +21,7 @@
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
     "supabase:version": "supabase --version",
+    "supabase:verify-version": "node scripts/verify-supabase-cli.mjs",
     "supabase:reset": "supabase db reset",
     "performance": "node --experimental-strip-types scripts/measure-public-performance.ts",
     "bootstrap-admin": "node --experimental-strip-types scripts/bootstrap-admin.ts"
