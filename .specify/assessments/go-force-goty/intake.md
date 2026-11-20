@@ -34,6 +34,9 @@ Add a `Go Force` page/module to the Ako Chronicles blog site to facilitate a liv
 - The final GOTY ballot lists the finalists. Each player casts one vote and may add a remark.
 - If the final ballot is tied, all tied games share the Game Ako GOTY title; there is no additional runoff to choose a single winner.
 - The site should display vote history, round results, and the final shortlist.
+- Go Force should be ready before the user-reported December 10, 2026 Game Awards date.
+- The user wants to proceed regardless of demonstrated audience demand, with the intent of creating demand through the content.
+- Players will use existing Game Ako accounts to vote.
 
 ## First-Glance Unknowns
 

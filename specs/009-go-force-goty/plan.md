@@ -6,7 +6,7 @@
 
 ## Summary
 
-Deliver a Go Force live-session module in the existing web application. The admin maintains annual eligible games and page visibility without a redeployment. The game master runs a fixed-roster session through three rounds and a final ballot. Session state is persisted in Supabase Postgres; private Supabase Realtime Broadcast keeps facilitator and player views current while ballot details remain hidden until the game master closes each selection. Completed results are shown on a separate admin-controlled page.
+Deliver a Go Force live-session module in the existing web application, ready before the owner-reported December 10, 2026 show date. The admin maintains annual eligible games and page visibility without a redeployment. The game master runs a fixed-roster session through three rounds and a final ballot. Session state is persisted in Supabase Postgres; private Supabase Realtime Broadcast keeps facilitator and player views current while ballot details remain hidden until the game master closes each selection. Completed results are shown on a separate admin-controlled page.
 
 ## Technical Context
 
@@ -24,7 +24,7 @@ Deliver a Go Force live-session module in the existing web application. The admi
 
 **Performance Goals**: Preserve responsive ballot and facilitator updates during one live event. Establish a measured latency baseline in a rehearsal using the invited roster; no universal player-count or latency threshold was provided.
 
-**Constraints**: The roster and eligible-game list are fixed at session start; no late joins. Page visibility and eligible games are admin-controlled content and must change without redeployment. Individual votes are not visible on player screens until the game master closes the selection; the shared facilitator screen then displays group results and each player's vote. Only sessions meeting the 80% vote-completion minimum and Round 3 `go` requirement can be marked complete.
+**Constraints**: Go Force must be ready before the owner-reported December 10, 2026 event date. The roster and eligible-game list are fixed at session start; no late joins. Page visibility and eligible games are admin-controlled content and must change without redeployment. Individual votes are not visible on player screens until the game master closes the selection; the shared facilitator screen then displays group results and each player's vote. Only sessions meeting the 80% vote-completion minimum and Round 3 `go` requirement can be marked complete.
 
 **Scale/Scope**: One active GOTY session per year; player count varies by event and is fixed when it starts. Validate each event against its invited roster. No external Discord or streaming integration is in scope.
 
@@ -40,7 +40,7 @@ Deliver a Go Force live-session module in the existing web application. The admi
 | IV. Security | PASS WITH CONTROLS | Reuse verified accounts and admin role checks; apply database RLS and private Realtime channel authorization. Ballot details remain unavailable to player views until a selection closes. |
 | V. Performance Requirements | PASS WITH VALIDATION | Use Realtime Broadcast; measure update and reconnect behavior with the invited player roster before the live event, then retain that rehearsal as the baseline. |
 
-No constitutional violations are identified. Usability validation and performance baseline are required release checks, not exceptions.
+No constitutional violations are identified. Usability validation, performance baseline, and readiness before the stated event date are required release checks, not exceptions.
 
 ## Project Structure
 

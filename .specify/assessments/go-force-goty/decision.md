@@ -2,25 +2,29 @@
 
 - **Slug**: go-force-goty
 - **Decided**: 2026-11-20
-- **Verdict**: needs-clarification
-- **Artifacts reviewed**: intake.md, problem.md, concept.md; research.md not present; .specify/memory/constitution.md
+- **Verdict**: go
+- **Artifacts reviewed**: intake.md, research.md, problem.md, concept.md, .specify/memory/constitution.md
 
 ## Scorecard
 
 | Criterion | Rating | Justification |
 |-----------|--------|---------------|
-| Problem validity | adequate | The user confirms Game Ako has no GOTY selection process and wants one for its content; the need is concrete, though its value to the wider audience has not been tested. |
-| Evidence strength | unknown | No research.md or audience/player feedback is available; evidence currently comes from the user's description and clarifications. |
-| Value vs. inaction | adequate | The activity would create an annual GOTY result and post-session record where none exists now, but audience impact has not been measured. |
-| Feasibility / appetite | adequate | The guided live-session module is a coherent medium-appetite concept, but the site's live-session capabilities have not been assessed. |
-| Strategic fit | adequate | The user identifies this as content for the Game Ako site; the constitution sets engineering and UX expectations but no product strategy that would confirm or conflict with this feature. |
-| Risk posture | weak | The concept identifies empty shortlists, incomplete votes, vote visibility, and live-session interruptions, but does not yet establish mitigations or rules for these cases. |
+| Problem validity | adequate | Game Ako has no existing GOTY process, and the owner directly identifies an annual live-content goal and a results portfolio to share next year. |
+| Evidence strength | adequate | The owner’s intent, deadline, current lack of a process, account model, and admin/editorial context are direct evidence for this owner-led content investment. Broader fan interest remains unmeasured and is not a prerequisite by the owner’s choice. |
+| Value vs. inaction | adequate | Proceeding creates the planned event and a reusable post-event portfolio; inaction misses the stated December content window. Audience impact remains unmeasured. |
+| Feasibility / appetite | adequate | The recommended guided module fits the medium appetite and existing Next.js/Supabase stack; database-backed admin patterns exist, while live realtime updates are new and require rehearsal. |
+| Strategic fit | adequate | The user explicitly wants this as Game Ako content and accepts that the feature may create demand rather than respond to measured demand. |
+| Risk posture | weak | The user-reported deadline is about 20 days after the research date, the official schedule could not be independently verified, and the project has no prior realtime feature. A focused release and live rehearsal are needed to manage delivery risk. |
 
 ## Verdict & Rationale
 
-The concept is promising and Option C is the recommended approach, but the verdict is **needs-clarification** because evidence strength is unknown. The decide gate requires at least adequate evidence for a `go`, and no research artifact supports audience value or validates the live-session assumptions. This is not a rejection of the recommendation; it is a pause until a focused research pass supplies that evidence.
+The verdict is **go** for the guided live-session module. This is an owner-directed content investment, not a demand-validated audience product; the owner has explicitly chosen to proceed and create demand. Problem validity, owner-level evidence, value versus inaction, and a credible medium-appetite concept meet the gate. The low overall research confidence still applies to broader fan demand and the external event date, and the compressed delivery window remains a material risk.
 
-## If needs-clarification
+## If go — Handoff to `$speckit-specify`
 
-- **Blocking questions**: [NEEDS CLARIFICATION: Gather focused evidence that Game Ako players or viewers value an annual live GOTY selection event and its post-session results; also verify whether the current site can support the proposed shared live session within the medium appetite.]
-- **Revisit stage**: research
+- **Problem**: Game Ako has no community GOTY process; the owner wants a live selection event and results portfolio ready before the user-reported December 10, 2026 event date.
+- **Chosen approach**: Option C — Guided live-session module.
+- **In scope / out of scope**: Three live voting rounds, admin-maintained annual eligible list and page visibility, fixed account-based roster, final GOTY ballot with tied co-winners, and post-event results page. Out of scope: video-game functionality, automatic curation, async play, late joining, and requiring proof of pre-existing audience demand.
+- **Success metrics**: Ready before the stated event date; at least 80% of expected vote opportunities submitted; each completed session has one or more GOTY winners and a post-session results page.
+- **Carried-forward open questions**: None from user clarifications. The event date remains user-reported, and wider audience demand is unmeasured by choice.
+- **Current status**: A feature spec and plan exist at `specs/009-go-force-goty/` and now include the owner-reported December 10 readiness target.

@@ -26,7 +26,7 @@
 
 ## Recommendation
 
-Recommend **Option C — Guided live-session module**. It directly supports the stated goal of establishing a repeatable GOTY process for Game Ako content, accommodates a group whose size is fixed at session start, and gives the event a documented result page afterward. It also offers the clearest path to measuring the 80% required-vote completion target. Confirm the existing site's live-session capabilities and resolve the listed assumptions before committing to the medium appetite.
+Recommend **Option C — Guided live-session module**. It supports the owner-directed goal of establishing a repeatable GOTY event and results portfolio, accommodates a group whose size is fixed at session start, and provides the clearest path to the 80% required-vote completion target. The user wants it ready before the user-reported December 10, 2026 event date; the medium appetite and new live-update integration make the schedule tight, so keep the first release focused.
 
 ## Out of Scope (for the recommended option)
 
@@ -38,8 +38,9 @@ Recommend **Option C — Guided live-session module**. It directly supports the 
 
 ## Assumptions to Validate
 
-- At least one eligible game reaches each round; if a round's roulette is empty, the group will need an agreed recovery rule.
-- The 80% completion target means at least 80% of expected player vote opportunities are submitted across the session.
-- Player-level votes stay hidden from players while they are voting, then may be shown with group results on the shared game master screen.
-- The existing site can support a shared live experience without a large platform change; this has not been assessed.
-- The post-session results page is sufficient for the audience's record of the event; no additional live audience interaction is required.
+- Empty Round 1 or Round 2 shortlists stop that session without a result; the game master starts a fresh session.
+- The 80% completion target is calculated across expected session votes; missing votes count as abstentions, and every player must use the Round 3 `go`.
+- Players use existing Game Ako accounts; individual votes are shown on the shared facilitator screen after a selection closes.
+- The existing site supports database-backed admin content changes without redeployment; live session updates remain a new integration that needs a rehearsal.
+- Current audience demand is not a prerequisite for the owner's content investment; the goal is to create demand.
+- Go Force is expected to be ready before the user-reported December 10, 2026 event date; this deadline is tight relative to the medium appetite.

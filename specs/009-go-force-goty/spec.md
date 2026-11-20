@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Create the Go Force feature on the Ako Chronicles blog site to run a live, three-round Game of the Year selection. Players join through Discord and vote on games selected by the game master. Admins can manage page visibility and the eligible game list without redeployment. The event streams to the Game Ako channel, and results are published on a separate page after the event."
+**Input**: User description: "Create the Go Force feature on the Ako Chronicles blog site to run a live, three-round Game of the Year selection. Players join through Discord and vote on games selected by the game master. Admins can manage page visibility and the eligible game list without redeployment. The event streams to the Game Ako channel, and results are published on a separate page after the event. Go Force must be ready before the owner-reported December 10, 2026 show date."
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -114,6 +114,7 @@ After the live show and voting process are complete, the admin makes a separate 
 - **SC-003**: 100% of completed sessions have a separate results page available after the event, containing vote history, round results, finalists, and winner(s).
 - **SC-004**: Admin changes to page visibility and eligible game content are reflected on the site without a redeployment.
 - **SC-005**: In post-event feedback, players and viewers can describe how the finalists and winner(s) were determined; baseline and satisfaction target are not yet established.
+- **SC-006**: Go Force is ready for the planned live session before December 10, 2026, the event date supplied by the owner.
 
 ## Assumptions
 
@@ -125,3 +126,4 @@ After the live show and voting process are complete, the admin makes a separate 
 - If no games advance from Round 1 or Round 2, that session is incomplete and has no published GOTY result.
 - Submitted final-ballot remarks appear on the post-session results page.
 - An active session remains tied to the annual game list and player roster that were in effect when it started.
+- The December 10, 2026 readiness target comes from the owner's event context; the official schedule could not be independently verified.
