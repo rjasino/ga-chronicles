@@ -171,7 +171,7 @@
 }
 
 @layer components {
-  .go-force-roulette { display: grid; justify-items: center; gap: .5rem; }
+  .go-force-roulette { display: grid; justify-items: center; gap: .5rem; margin: 0; }
   .go-force-roulette__wheel {
     position: relative;
     display: grid;
@@ -224,7 +224,25 @@
   .go-force-roulette__spinning,
   .go-force-roulette__selected { grid-area: 1 / 1; }
   .go-force-roulette__selected { opacity: 0; animation: go-force-wheel-reveal 2.2s linear both; }
+  .go-force-roulette__animation {
+    display: block;
+    width: min(22rem, 100%);
+    height: auto;
+    border: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .go-force-roulette__result {
+    display: grid;
+    justify-items: center;
+    gap: .15rem;
+    margin: 0;
+    color: var(--blue);
+    text-align: center;
+  }
+  .go-force-roulette__result-label { color: var(--muted); font-size: .8rem; }
+  .go-force-roulette__error { margin: 0; color: var(--red); font-weight: 700; text-align: center; }
   .go-force-roulette__caption { margin: 0; color: var(--muted); font-size: .9rem; text-align: center; }
+  .go-force-roulette__reduced-motion-note { display: none; }
 }
 
 @media (max-width: 760px) {
@@ -234,4 +252,8 @@
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .go-force-roulette__animation { display: none; }
+  .go-force-roulette__wheel { animation: none; }
+  .go-force-roulette__animated-note { display: none; }
+  .go-force-roulette__reduced-motion-note { display: inline; }
 }

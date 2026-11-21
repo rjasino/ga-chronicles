@@ -1,0 +1,96 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { spinWheelOfNames, type WheelOfNamesEntry } from "@/features/go-force/wheel-of-names-client";
+
+const entries: WheelOfNamesEntry[] = [
+  { id: "41000000-0000-4000-8000-000000000001", text: "Game One" },
+  { id: "41000000-0000-4000-8000-000000000002", text: "Game Two" },
+];
+
+const validResponse = {
+  animation: "R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+  winner: { id: entries[1].id, text: entries[1].text },
+};
+
+describe("Wheel of Names client", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("authenticates and builds a winner-removing wheel request", async () => {
+    vi.stubEnv("WHEEL_OF_NAMES_API_KEY", "wheel-test-key");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(validResponse), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(spinWheelOfNames(entries)).resolves.toEqual(validResponse);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://wheelofnames.com/api/v3/wheels/animate");
+    expect(init.method).toBe("POST");
+    expect(new Headers(init.headers).get("x-api-key")).toBe("wheel-test-key");
+    expect(new Headers(init.headers).get("content-type")).toContain("application/json");
+    expect(JSON.parse(String(init.body))).toEqual({
+      wheelConfig: {
+        title: "Go Force",
+        autoRemoveWinner: true,
+        entries,
+      },
+    });
+  });
+
+  it("rejects an unknown provider winner ID", async () => {
+    vi.stubEnv("WHEEL_OF_NAMES_API_KEY", "wheel-test-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({
+          ...validResponse,
+          winner: { id: "unknown-game", text: "Game One" },
+        }), { status: 200 }),
+      ),
+    );
+
+    await expect(spinWheelOfNames(entries)).rejects.toThrow(/not in the current game pool/i);
+  });
+
+  it("rejects a winner title that does not match its ID", async () => {
+    vi.stubEnv("WHEEL_OF_NAMES_API_KEY", "wheel-test-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({
+          ...validResponse,
+          winner: { id: entries[0].id, text: "A different game" },
+        }), { status: 200 }),
+      ),
+    );
+
+    await expect(spinWheelOfNames(entries)).rejects.toThrow(/winner title did not match/i);
+  });
+
+  it("rejects malformed animation responses", async () => {
+    vi.stubEnv("WHEEL_OF_NAMES_API_KEY", "wheel-test-key");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({
+        animation: "not-base64",
+        winner: { id: entries[0].id, text: entries[0].text },
+      }), { status: 200 })),
+    );
+
+    await expect(spinWheelOfNames(entries)).rejects.toThrow(/invalid response/i);
+  });
+
+  it("turns provider errors into a recoverable message", async () => {
+    vi.stubEnv("WHEEL_OF_NAMES_API_KEY", "wheel-test-key");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Unavailable", { status: 503 })));
+
+    await expect(spinWheelOfNames(entries)).rejects.toThrow(/could not complete the spin/i);
+  });
+});

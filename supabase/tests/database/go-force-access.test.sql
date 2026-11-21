@@ -1,12 +1,13 @@
 begin;
-select plan(26);
+select plan(27);
 
 select has_table('public', 'go_force_sessions', 'Go Force sessions table exists');
 select has_table('public', 'go_force_game_votes', 'Go Force game votes table exists');
 select has_table('public', 'go_force_final_ballot_votes', 'Go Force final ballot table exists');
 select has_table('public', 'go_force_results', 'Go Force results table exists');
 select has_function('public', 'go_force_start_session', array['uuid'], 'session start function exists');
-select has_function('public', 'go_force_draw_selection', array['uuid'], 'roulette draw function exists');
+select has_function('public', 'go_force_commit_selection', array['uuid', 'uuid'], 'candidate-specific selection function exists');
+select hasnt_function('public', 'go_force_draw_selection', array['uuid'], 'random selection function is removed');
 select has_function('public', 'go_force_submit_game_vote', array['uuid', 'text'], 'game vote function exists');
 select has_function('public', 'go_force_close_selection', array['uuid'], 'selection close function exists');
 select has_function('public', 'go_force_submit_final_ballot', array['uuid', 'uuid', 'text'], 'final ballot function exists');
@@ -14,7 +15,7 @@ select has_function('public', 'go_force_close_final_ballot', array['uuid'], 'fin
 
 -- Deterministic session fixtures: reader and contributor are on the roster.
 insert into public.go_force_sessions (id, goty_year, game_master_id, status, started_at)
-values ('40000000-0000-4000-8000-000000000001', 2026, '10000000-0000-4000-8000-000000000004', 'live', now());
+values ('40000000-0000-4000-8000-000000000001', 2098, '10000000-0000-4000-8000-000000000004', 'live', now());
 insert into public.go_force_session_participants (session_id, account_id, display_name_snapshot, roster_order)
 values
   ('40000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'Local Reader', 1),
@@ -23,7 +24,7 @@ insert into public.go_force_session_games (id, session_id, title_snapshot, sourc
 select ('41000000-0000-4000-8000-00000000000' || n)::uuid,
        '40000000-0000-4000-8000-000000000001',
        'Fixture Game ' || n,
-       2026,
+       2098,
        n
 from generate_series(1, 5) as n;
 insert into public.go_force_rounds (id, session_id, round_number, status, go_limit, started_at)
@@ -92,7 +93,7 @@ select is(
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 select lives_ok(
   $$insert into public.go_force_annual_games (goty_year, title, eligibility_state)
-    values (2026, 'Admin Added Game', 'eligible')$$,
+    values (2098, 'Admin Added Game', 'eligible')$$,
   'admins can add annual games'
 );
 select lives_ok(
@@ -104,7 +105,7 @@ reset role;
 set local role anon;
 select throws_ok(
   $$insert into public.go_force_annual_games (goty_year, title, eligibility_state)
-    values (2026, 'Anonymous Game', 'eligible')$$,
+    values (2098, 'Anonymous Game', 'eligible')$$,
   '42501',
   null,
   'anonymous visitors cannot add annual games'

@@ -18,6 +18,43 @@ returns integer language sql as $$
   order by round_number desc limit 1;
 $$;
 
+create function pg_temp.test_draw_next_selection(target_session uuid)
+returns jsonb language plpgsql as $$
+declare
+  active_round public.go_force_rounds%rowtype;
+  candidate_game uuid;
+begin
+  select * into active_round
+  from public.go_force_rounds
+  where session_id = target_session and status = 'active'
+  order by round_number desc limit 1;
+
+  select sg.id into candidate_game
+  from public.go_force_session_games sg
+  where sg.session_id = target_session
+    and (
+      active_round.round_number = 1
+      or exists (
+        select 1
+        from public.go_force_selections prior_sel
+        join public.go_force_rounds prior_round on prior_round.id = prior_sel.round_id
+        where prior_round.session_id = target_session
+          and prior_round.round_number = active_round.round_number - 1
+          and prior_sel.session_game_id = sg.id
+          and prior_sel.advancement_outcome = 'advanced'
+      )
+    )
+    and not exists (
+      select 1 from public.go_force_selections sel
+      where sel.round_id = active_round.id and sel.session_game_id = sg.id
+    )
+  order by sg.display_order
+  limit 1;
+
+  return public.go_force_commit_selection(target_session, candidate_game);
+end;
+$$;
+
 insert into public.go_force_annual_games (id, goty_year, title, eligibility_state, display_order)
 select ('51000000-0000-4000-8000-00000000000' || n)::uuid,
        2030,
@@ -46,25 +83,25 @@ select is(
 select is(pg_temp.test_active_round('40000000-0000-4000-8000-000000000099'), 1, 'round 1 is active');
 
 -- Round 1: three go votes and one no-go.
-select public.go_force_draw_selection('40000000-0000-4000-8000-000000000099');
+select pg_temp.test_draw_next_selection('40000000-0000-4000-8000-000000000099');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select public.go_force_submit_game_vote(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'), 'go');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 select public.go_force_close_selection(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'));
 
-select public.go_force_draw_selection('40000000-0000-4000-8000-000000000099');
+select pg_temp.test_draw_next_selection('40000000-0000-4000-8000-000000000099');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select public.go_force_submit_game_vote(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'), 'go');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 select public.go_force_close_selection(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'));
 
-select public.go_force_draw_selection('40000000-0000-4000-8000-000000000099');
+select pg_temp.test_draw_next_selection('40000000-0000-4000-8000-000000000099');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select public.go_force_submit_game_vote(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'), 'go');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 select public.go_force_close_selection(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'));
 
-select public.go_force_draw_selection('40000000-0000-4000-8000-000000000099');
+select pg_temp.test_draw_next_selection('40000000-0000-4000-8000-000000000099');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select public.go_force_submit_game_vote(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'), 'no-go');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
@@ -79,17 +116,17 @@ select is(
 );
 
 -- Round 2: two go votes and one no-go.
-select public.go_force_draw_selection('40000000-0000-4000-8000-000000000099');
+select pg_temp.test_draw_next_selection('40000000-0000-4000-8000-000000000099');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select public.go_force_submit_game_vote(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'), 'go');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 select public.go_force_close_selection(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'));
-select public.go_force_draw_selection('40000000-0000-4000-8000-000000000099');
+select pg_temp.test_draw_next_selection('40000000-0000-4000-8000-000000000099');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select public.go_force_submit_game_vote(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'), 'go');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 select public.go_force_close_selection(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'));
-select public.go_force_draw_selection('40000000-0000-4000-8000-000000000099');
+select pg_temp.test_draw_next_selection('40000000-0000-4000-8000-000000000099');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select public.go_force_submit_game_vote(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'), 'no-go');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
@@ -98,12 +135,12 @@ select public.go_force_close_selection(pg_temp.test_latest_selection('40000000-0
 select is(pg_temp.test_active_round('40000000-0000-4000-8000-000000000099'), 3, 'round 2 closes into round 3');
 
 -- Round 3: exactly one go vote.
-select public.go_force_draw_selection('40000000-0000-4000-8000-000000000099');
+select pg_temp.test_draw_next_selection('40000000-0000-4000-8000-000000000099');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select public.go_force_submit_game_vote(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'), 'go');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 select public.go_force_close_selection(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'));
-select public.go_force_draw_selection('40000000-0000-4000-8000-000000000099');
+select pg_temp.test_draw_next_selection('40000000-0000-4000-8000-000000000099');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
 select public.go_force_submit_game_vote(pg_temp.test_latest_selection('40000000-0000-4000-8000-000000000099'), 'no-go');
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);

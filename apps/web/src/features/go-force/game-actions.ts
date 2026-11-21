@@ -3,11 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getVerifiedSession } from "@/lib/supabase/session";
+import { getFacilitatorSessionView } from "@/features/go-force/session-queries";
 import { goForceErrorMessage } from "@/features/go-force/messages";
 import { publishGoForceSessionUpdate } from "@/features/go-force/realtime-broadcast";
 import { parseGameVoteForm } from "@/features/go-force/schemas";
+import { spinWheelOfNames, WheelOfNamesError } from "@/features/go-force/wheel-of-names-client";
 
-export type GameActionState = { error?: string; success?: string; selectionId?: string; title?: string };
+export type GameActionState = {
+  error?: string;
+  success?: string;
+  selectionId?: string;
+  title?: string;
+  animation?: string;
+};
 
 function revalidateSession(sessionId: string) {
   revalidatePath(`/admin/go-force/sessions/${sessionId}`);
@@ -19,18 +27,61 @@ export async function drawGoForceSelection(_state: GameActionState, formData: Fo
   const session = await getVerifiedSession();
   if (!session) return { error: "Sign in to run the roulette." };
   const sessionId = String(formData.get("sessionId") ?? "");
-  if (!sessionId) return { error: "Choose a Go Force session." };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
+    return { error: "Choose a valid Go Force session." };
+  }
+
+  let view;
+  try {
+    view = await getFacilitatorSessionView(sessionId);
+  } catch {
+    return { error: "The Go Force session could not be loaded. Please retry." };
+  }
+  if (!view) return { error: "That Go Force session could not be found." };
+  if (view.session.game_master_id !== session.userId && !session.roles.includes("admin")) {
+    return { error: "Only the game master or an admin can spin the roulette." };
+  }
+  if (view.session.status !== "live" || !view.currentRound) {
+    return { error: "This session does not have an active round." };
+  }
+  if (view.currentSelection) return { error: "Close the current ballot before spinning again." };
+  if (view.remainingGames.length === 0) {
+    return { error: "Every game in this round has already been selected." };
+  }
+
+  let spin;
+  try {
+    spin = await spinWheelOfNames(
+      view.remainingGames.map((game) => ({ id: game.id, text: game.title_snapshot })),
+    );
+  } catch (error) {
+    return {
+      error: error instanceof WheelOfNamesError || error instanceof Error
+        ? error.message
+        : "Wheel of Names could not complete the spin. Please retry.",
+    };
+  }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("go_force_draw_selection", { target_session: sessionId });
-  if (error) return { error: goForceErrorMessage(error, "The roulette could not draw a game.") };
+  const { data, error } = await supabase.rpc("go_force_commit_selection", {
+    target_session: sessionId,
+    target_game: spin.winner.id,
+  });
+  if (error) return { error: goForceErrorMessage(error, "The game could not be committed. Please retry.") };
+
+  const selectionId = typeof data?.selectionId === "string" ? data.selectionId : undefined;
+  const title = typeof data?.title === "string" ? data.title : undefined;
+  if (!selectionId || title !== spin.winner.text) {
+    return { error: "The selected game could not be confirmed. Please refresh the session." };
+  }
 
   await publishGoForceSessionUpdate(sessionId);
   revalidateSession(sessionId);
   return {
-    selectionId: typeof data?.selectionId === "string" ? data.selectionId : undefined,
-    title: typeof data?.title === "string" ? data.title : undefined,
-    success: typeof data?.title === "string" ? `${data.title} is up for a vote.` : "A game is up for a vote.",
+    selectionId,
+    title,
+    animation: spin.animation,
+    success: `${title} is up for a vote.`,
   };
 }
 

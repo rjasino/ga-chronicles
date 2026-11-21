@@ -27,12 +27,24 @@ function StartSessionForm({ sessionId }: { sessionId: string }) {
   );
 }
 
-function DrawForm({ sessionId, disabled }: { sessionId: string; disabled: boolean }) {
-  const [state, action, pending] = useActionState(drawGoForceSelection, {} satisfies GameActionState);
+function DrawForm({
+  sessionId,
+  disabled,
+  state,
+  action,
+  pending,
+}: {
+  sessionId: string;
+  disabled: boolean;
+  state: GameActionState;
+  action: (formData: FormData) => void;
+  pending: boolean;
+}) {
   return (
     <form className="form-stack" action={action}>
       <input type="hidden" name="sessionId" value={sessionId} />
-      {state.error && <Message tone="error">{state.error}</Message>}
+      {state.error && <RouletteReveal status="error" error={state.error} />}
+      {pending && <RouletteReveal status="pending" />}
       <Button purpose="primary" pending={pending} disabled={disabled}>Spin the roulette</Button>
     </form>
   );
@@ -106,6 +118,10 @@ function RoundThreeGoStatus({ data }: { data: FacilitatorSessionView }) {
 }
 
 export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
+  const [drawState, drawAction, drawPending] = useActionState(
+    drawGoForceSelection,
+    {} satisfies GameActionState,
+  );
   const { session, participants, currentRound, currentSelection, closingSelection, remainingGames, finalists, ballotSubmittedCount } = data;
   const activeParticipants = participants.filter((participant) => participant.active);
   const submittedVotes = currentSelection?.votes.filter((vote) => vote.submitted_at).length ?? 0;
@@ -146,6 +162,7 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
                 <RouletteReveal
                   key={currentSelection.id}
                   title={currentSelection.game?.title_snapshot ?? "Selected game"}
+                  animation={drawState.selectionId === currentSelection.id ? drawState.animation : undefined}
                 />
                 <GameDetailsCard
                   title={currentSelection.game?.title_snapshot ?? "Selected game"}
@@ -169,7 +186,13 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
               <CloseSelectionForm sessionId={session.id} selectionId={currentSelection.id} />
             </div>
           ) : (
-            <DrawForm sessionId={session.id} disabled={remainingGames.length === 0} />
+            <DrawForm
+              sessionId={session.id}
+              disabled={remainingGames.length === 0}
+              state={drawState}
+              action={drawAction}
+              pending={drawPending}
+            />
           )}
 
           {closingSelection && <VoteBreakdown selection={closingSelection} participants={activeParticipants} />}
