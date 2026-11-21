@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   annualGameInputSchema,
   createSessionSchema,
+  goForceVotingSettingsSchema,
   pageVisibilitySchema,
   resultVisibilitySchema,
 } from "@/features/go-force/admin-schemas";
@@ -15,6 +16,35 @@ describe("Go Force admin schemas", () => {
 
   it("caps game titles at 200 characters", () => {
     expect(annualGameInputSchema.safeParse({ title: "x".repeat(201), gotyYear: 2026, eligibilityState: "eligible" }).success).toBe(false);
+  });
+
+  it("accepts optional game metadata and valid cover-art URLs", () => {
+    expect(annualGameInputSchema.safeParse({
+      title: "Hades II",
+      gotyYear: 2026,
+      eligibilityState: "eligible",
+    }).success).toBe(true);
+    expect(annualGameInputSchema.safeParse({
+      title: "Hades II",
+      gotyYear: 2026,
+      eligibilityState: "eligible",
+      developer: "Supergiant Games",
+      publisher: "Supergiant Games",
+      genre: "Roguelike",
+      coverArtUrl: "https://cdn.example.test/hades-ii.webp",
+    }).success).toBe(true);
+    expect(annualGameInputSchema.safeParse({
+      title: "Hades II",
+      gotyYear: 2026,
+      eligibilityState: "eligible",
+      coverArtUrl: "javascript:alert(1)",
+    }).success).toBe(false);
+  });
+
+  it("validates independently configurable voting timers", () => {
+    expect(goForceVotingSettingsSchema.safeParse({ roundVotingSeconds: 10, finalBallotSeconds: 10 }).success).toBe(true);
+    expect(goForceVotingSettingsSchema.safeParse({ roundVotingSeconds: 4, finalBallotSeconds: 10 }).success).toBe(false);
+    expect(goForceVotingSettingsSchema.safeParse({ roundVotingSeconds: 10, finalBallotSeconds: 601 }).success).toBe(false);
   });
 
   it("accepts only known eligibility states", () => {

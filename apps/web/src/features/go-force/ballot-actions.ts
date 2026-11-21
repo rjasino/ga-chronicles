@@ -55,3 +55,19 @@ export async function closeGoForceFinalBallot(_state: BallotActionState, formDat
     success: `Final ballot closed at ${data?.completion ?? 0}% vote completion. This session does not meet the completion requirements, so no GOTY result was published.`,
   };
 }
+
+export async function expireGoForceFinalBallot(sessionId: string): Promise<{ closed: boolean }> {
+  const session = await getVerifiedSession();
+  if (!session || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
+    return { closed: false };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("go_force_expire_final_ballot", { target_session: sessionId });
+  if (error) return { closed: false };
+  if (data?.closed !== true) return { closed: false };
+
+  await publishGoForceSessionUpdate(sessionId);
+  revalidateSession(sessionId);
+  return { closed: true };
+}

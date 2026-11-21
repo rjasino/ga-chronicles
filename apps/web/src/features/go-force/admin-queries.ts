@@ -10,10 +10,10 @@ export async function getGoForcePageSettings(): Promise<GoForcePageSettings> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("go_force_page_settings")
-    .select("id,page_visible,updated_by,updated_at")
+    .select("id,page_visible,round_voting_seconds,final_ballot_seconds,updated_by,updated_at")
     .eq("id", true)
     .maybeSingle();
-  return data ?? { id: true, page_visible: false, updated_by: null, updated_at: new Date(0).toISOString() };
+  return data ?? { id: true, page_visible: false, round_voting_seconds: 10, final_ballot_seconds: 10, updated_by: null, updated_at: new Date(0).toISOString() };
 }
 
 export async function listEligibleAnnualGames(year: number): Promise<AnnualGame[]> {
@@ -53,7 +53,7 @@ export async function getGoForceAdminData(): Promise<GoForceAdminData> {
   const supabase = await createClient();
   const [{ data: settings }, { data: games }, { data: accounts }, { data: sessions }, { data: resultRows }] =
     await Promise.all([
-      supabase.from("go_force_page_settings").select("id,page_visible,updated_by,updated_at").eq("id", true).maybeSingle(),
+      supabase.from("go_force_page_settings").select("id,page_visible,round_voting_seconds,final_ballot_seconds,updated_by,updated_at").eq("id", true).maybeSingle(),
       supabase.from("go_force_annual_games").select("*").order("goty_year", { ascending: false }).order("display_order", { ascending: true }).order("title", { ascending: true }),
       supabase.from("accounts").select("id,username,display_name").eq("status", "active").order("username", { ascending: true }),
       supabase.from("go_force_sessions").select("*").order("created_at", { ascending: false }),
@@ -73,7 +73,7 @@ export async function getGoForceAdminData(): Promise<GoForceAdminData> {
   }, {});
 
   return {
-    settings: settings ?? { id: true, page_visible: false, updated_by: null, updated_at: new Date(0).toISOString() },
+    settings: settings ?? { id: true, page_visible: false, round_voting_seconds: 10, final_ballot_seconds: 10, updated_by: null, updated_at: new Date(0).toISOString() },
     games: allGames,
     accounts: accounts ?? [],
     sessions: ((sessions ?? []) as GoForceSession[]).map((session) => ({

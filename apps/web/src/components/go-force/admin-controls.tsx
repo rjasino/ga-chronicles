@@ -11,6 +11,7 @@ import {
   removeAnnualGame,
   saveAnnualGame,
   saveGoForcePageVisibility,
+  saveGoForceVotingSettings,
   setGoForceResultVisibility,
   type AdminActionState,
 } from "@/features/go-force/admin-actions";
@@ -34,29 +35,83 @@ function VisibilityForm({ visible }: { visible: boolean }) {
   );
 }
 
+function VotingSettingsForm({
+  roundVotingSeconds,
+  finalBallotSeconds,
+}: {
+  roundVotingSeconds: number;
+  finalBallotSeconds: number;
+}) {
+  const [state, action, pending] = useActionState(saveGoForceVotingSettings, {} satisfies AdminActionState);
+  return (
+    <form className="form-stack settings-form" action={action}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <TextField
+          label="Round vote duration (seconds)"
+          name="roundVotingSeconds"
+          type="number"
+          min={5}
+          max={600}
+          defaultValue={roundVotingSeconds}
+          required
+        />
+        <TextField
+          label="Final ballot duration (seconds)"
+          name="finalBallotSeconds"
+          type="number"
+          min={5}
+          max={600}
+          defaultValue={finalBallotSeconds}
+          required
+        />
+      </div>
+      <p className="m-0 text-[.88rem] text-muted">Both timers default to 10 seconds. Choose 5–600 seconds; changing a timer does not alter a vote already in progress.</p>
+      {state.error && <Message tone="error">{state.error}</Message>}
+      {state.success && <Message tone="success">{state.success}</Message>}
+      <Button purpose="primary" pending={pending}>Save voting timers</Button>
+    </form>
+  );
+}
+
 function AnnualGameRow({ game }: { game: AnnualGame }) {
   const [state, action, pending] = useActionState(saveAnnualGame, {} satisfies AdminActionState);
   const [removeState, removeAction, removePending] = useActionState(removeAnnualGame, {} satisfies AdminActionState);
   return (
     <li className="grid gap-3 border-b border-line py-4">
-      <form className="grid gap-3 md:grid-cols-[minmax(0,2fr)_7rem_9rem_6rem_auto] md:items-end" action={action}>
+      <form className="grid gap-3" action={action} encType="multipart/form-data">
         <input type="hidden" name="id" value={game.id} />
-        <TextField label="Game title" name="title" defaultValue={game.title} required maxLength={200} />
-        <TextField label="Year" name="gotyYear" type="number" min={2000} max={2100} defaultValue={game.goty_year} required />
-        <Select label="Eligibility" name="eligibilityState" defaultValue={game.eligibility_state}>
-          <option value="eligible">Eligible</option>
-          <option value="ineligible">Ineligible</option>
-        </Select>
-        <TextField label="Order" name="displayOrder" type="number" min={0} defaultValue={game.display_order} />
-        <Button purpose="secondary" pending={pending}>Save</Button>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_7rem_9rem_6rem_auto] md:items-end">
+          <TextField label="Game title" name="title" defaultValue={game.title} required maxLength={200} />
+          <TextField label="Year" name="gotyYear" type="number" min={2000} max={2100} defaultValue={game.goty_year} required />
+          <Select label="Eligibility" name="eligibilityState" defaultValue={game.eligibility_state}>
+            <option value="eligible">Eligible</option>
+            <option value="ineligible">Ineligible</option>
+          </Select>
+          <TextField label="Order" name="displayOrder" type="number" min={0} defaultValue={game.display_order} />
+          <Button purpose="secondary" pending={pending}>Save</Button>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <TextField label="Developer (optional)" name="developer" defaultValue={game.developer ?? ""} maxLength={160} />
+          <TextField label="Publisher (optional)" name="publisher" defaultValue={game.publisher ?? ""} maxLength={160} />
+          <TextField label="Genre (optional)" name="genre" defaultValue={game.genre ?? ""} maxLength={120} />
+          <TextField label="Cover art URL (optional)" name="coverArtUrl" type="url" defaultValue={game.cover_art_url ?? ""} maxLength={2048} />
+          <TextField
+            label="Upload cover art (optional)"
+            name="coverArtFile"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="file:mr-3 file:border-0 file:bg-blue file:px-3 file:py-2 file:font-semibold file:text-white"
+            hint="JPEG, PNG, or WebP up to 10 MiB. An uploaded image replaces the URL."
+          />
+        </div>
+        {state.error && <Message tone="error">{state.error}</Message>}
+        {state.success && <Message tone="success">{state.success}</Message>}
       </form>
       <div className="flex flex-wrap items-center gap-3">
         <form action={removeAction}>
           <input type="hidden" name="gameId" value={game.id} />
           <Button purpose="error" pending={removePending}>Remove</Button>
         </form>
-        {state.error && <Message tone="error">{state.error}</Message>}
-        {state.success && <Message tone="success">{state.success}</Message>}
         {removeState.error && <Message tone="error">{removeState.error}</Message>}
         {removeState.success && <Message tone="success">{removeState.success}</Message>}
       </div>
@@ -67,7 +122,7 @@ function AnnualGameRow({ game }: { game: AnnualGame }) {
 function AddGameForm({ latestYear }: { latestYear: number }) {
   const [state, action, pending] = useActionState(saveAnnualGame, {} satisfies AdminActionState);
   return (
-    <form className="form-stack" action={action}>
+    <form className="form-stack" action={action} encType="multipart/form-data">
       <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_7rem_9rem_6rem]">
         <TextField label="Game title" name="title" required maxLength={200} />
         <TextField label="GOTY year" name="gotyYear" type="number" min={2000} max={2100} defaultValue={latestYear} required />
@@ -76,6 +131,20 @@ function AddGameForm({ latestYear }: { latestYear: number }) {
           <option value="ineligible">Ineligible</option>
         </Select>
         <TextField label="Display order" name="displayOrder" type="number" min={0} defaultValue={0} />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <TextField label="Developer (optional)" name="developer" maxLength={160} />
+        <TextField label="Publisher (optional)" name="publisher" maxLength={160} />
+        <TextField label="Genre (optional)" name="genre" maxLength={120} />
+        <TextField label="Cover art URL (optional)" name="coverArtUrl" type="url" maxLength={2048} />
+        <TextField
+          label="Upload cover art (optional)"
+          name="coverArtFile"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="file:mr-3 file:border-0 file:bg-blue file:px-3 file:py-2 file:font-semibold file:text-white"
+          hint="JPEG, PNG, or WebP up to 10 MiB. An uploaded image replaces the URL."
+        />
       </div>
       {state.error && <Message tone="error">{state.error}</Message>}
       {state.success && <Message tone="success">{state.success}</Message>}
@@ -149,6 +218,15 @@ export function GoForceAdminControls({ data }: { data: GoForceAdminData }) {
         <h2 id="go-force-visibility" className="m-0 font-display text-[1.5rem] text-blue">Public page visibility</h2>
         <p className="m-0 mt-1 text-muted">Changes are saved as site content and take effect without a redeployment.</p>
         <VisibilityForm visible={data.settings.page_visible} />
+      </section>
+
+      <section className="go-force-card border border-line p-5" aria-labelledby="go-force-timers">
+        <h2 id="go-force-timers" className="m-0 font-display text-[1.5rem] text-blue">Voting timers</h2>
+        <p className="m-0 mt-1 text-muted">Round votes and the final ballot have separate countdowns. Active votes keep their current deadline.</p>
+        <VotingSettingsForm
+          roundVotingSeconds={data.settings.round_voting_seconds}
+          finalBallotSeconds={data.settings.final_ballot_seconds}
+        />
       </section>
 
       <section className="go-force-card border border-line p-5" aria-labelledby="go-force-games">

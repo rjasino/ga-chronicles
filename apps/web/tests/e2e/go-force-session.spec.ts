@@ -11,11 +11,13 @@ async function signInAdmin(page: Page) {
 async function drawAndVote(facilitator: Page, player: Page, choice: "Go" | "No-go", assertReveal = false) {
   await facilitator.getByRole("button", { name: "Spin the roulette" }).click();
   await expect(facilitator.getByText("Voting open")).toBeVisible();
+  await expect(facilitator.getByText("Animated reveal of the server-selected game.")).toBeVisible();
   const title = (await facilitator.locator("section h3").first().innerText()).trim();
 
   await player.reload();
   await expect(player.getByText("Now voting")).toBeVisible();
   await expect(player.getByRole("heading", { name: title })).toBeVisible();
+  await expect(player.getByText("Game details have not been added.")).toBeVisible();
   await player.getByRole("button", { name: choice, exact: true }).click();
   await expect(player.getByText(/vote is recorded/i)).toBeVisible();
 

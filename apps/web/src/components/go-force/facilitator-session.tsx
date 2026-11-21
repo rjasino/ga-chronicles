@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { GoForceLiveRefresh } from "@/components/go-force/live-refresh";
+import { GameDetailsCard } from "@/components/go-force/game-details-card";
+import { RouletteReveal } from "@/components/go-force/roulette-reveal";
+import { VotingCountdown } from "@/components/go-force/voting-countdown";
 import { Button } from "@/components/ui/button";
 import { Message } from "@/components/ui/message";
 import { closeGoForceSelection, drawGoForceSelection, type GameActionState } from "@/features/go-force/game-actions";
@@ -140,8 +143,28 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
             <div className="mt-4 grid gap-4">
               <div className="border-l-4 border-blue bg-paper px-4 py-3">
                 <p className="m-0 text-[.75rem] font-bold tracking-[.06em] text-red uppercase">Voting open</p>
-                <h3 className="m-0 font-display text-[1.5rem] text-blue">{currentSelection.game?.title_snapshot ?? "Selected game"}</h3>
+                <RouletteReveal
+                  key={currentSelection.id}
+                  title={currentSelection.game?.title_snapshot ?? "Selected game"}
+                />
+                <GameDetailsCard
+                  title={currentSelection.game?.title_snapshot ?? "Selected game"}
+                  developer={currentSelection.game?.developer_snapshot}
+                  publisher={currentSelection.game?.publisher_snapshot}
+                  genre={currentSelection.game?.genre_snapshot}
+                  coverArtUrl={currentSelection.game?.cover_art_url_snapshot}
+                />
                 <p className="m-0 mt-1">{submittedVotes} of {activeParticipants.length} players have submitted. Individual votes stay hidden on player screens.</p>
+                {currentSelection.voting_deadline_at && (
+                  <div className="mt-3">
+                    <VotingCountdown
+                      kind="round"
+                      deadlineAt={currentSelection.voting_deadline_at}
+                      sessionId={session.id}
+                      selectionId={currentSelection.id}
+                    />
+                  </div>
+                )}
               </div>
               <CloseSelectionForm sessionId={session.id} selectionId={currentSelection.id} />
             </div>
@@ -158,8 +181,21 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
         <section className="go-force-card border border-line p-5">
           <h2 className="m-0 font-display text-[1.7rem] text-blue">Final ballot</h2>
           <p>{ballotSubmittedCount} of {activeParticipants.length} players have submitted a final ballot.</p>
-          <ul className="m-3 list-disc pl-5">
-            {finalists.map((finalist) => <li key={finalist.gameId}>{finalist.title}</li>)}
+          {session.final_ballot_deadline_at && (
+            <VotingCountdown kind="final" deadlineAt={session.final_ballot_deadline_at} sessionId={session.id} />
+          )}
+          <ul className="m-3 grid list-none gap-3 p-0">
+            {finalists.map((finalist) => (
+              <li key={finalist.gameId}>
+                <GameDetailsCard
+                  title={finalist.title}
+                  developer={finalist.developer}
+                  publisher={finalist.publisher}
+                  genre={finalist.genre}
+                  coverArtUrl={finalist.coverArtUrl}
+                />
+              </li>
+            ))}
           </ul>
           <CloseBallotForm sessionId={session.id} />
         </section>

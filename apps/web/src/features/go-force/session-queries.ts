@@ -60,6 +60,10 @@ function finalistsFrom(
     .map((selection) => ({
       gameId: selection.session_game_id,
       title: selection.game?.title_snapshot ?? "Unknown game",
+      developer: selection.game?.developer_snapshot ?? null,
+      publisher: selection.game?.publisher_snapshot ?? null,
+      genre: selection.game?.genre_snapshot ?? null,
+      coverArtUrl: selection.game?.cover_art_url_snapshot ?? null,
     }));
   const tally = finalBallotVotes.reduce<Record<string, number>>((counts, vote) => {
     if (!vote.submitted_at || !vote.finalist_game_id) return counts;

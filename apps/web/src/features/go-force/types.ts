@@ -21,6 +21,10 @@ export type AnnualGame = {
   id: string;
   goty_year: number;
   title: string;
+  developer: string | null;
+  publisher: string | null;
+  genre: string | null;
+  cover_art_url: string | null;
   eligibility_state: AnnualGameEligibility;
   display_order: number;
   created_at: string;
@@ -30,6 +34,8 @@ export type AnnualGame = {
 export type GoForcePageSettings = {
   id: boolean;
   page_visible: boolean;
+  round_voting_seconds: number;
+  final_ballot_seconds: number;
   updated_by: string | null;
   updated_at: string;
 };
@@ -40,6 +46,7 @@ export type GoForceSession = {
   game_master_id: string;
   status: GoForceSessionStatus;
   started_at: string | null;
+  final_ballot_deadline_at: string | null;
   completed_at: string | null;
   vote_completion_percentage: number | null;
   created_at: string;
@@ -60,6 +67,10 @@ export type SessionGameSnapshot = {
   session_id: string;
   annual_game_id: string | null;
   title_snapshot: string;
+  developer_snapshot: string | null;
+  publisher_snapshot: string | null;
+  genre_snapshot: string | null;
+  cover_art_url_snapshot: string | null;
   source_year: number;
   display_order: number;
   created_at: string;
@@ -82,6 +93,7 @@ export type GameSelection = {
   session_game_id: string;
   selection_order: number;
   selected_at: string;
+  voting_deadline_at: string | null;
   voting_closed_at: string | null;
   advancement_outcome: "pending" | "advanced" | "eliminated";
 };
@@ -128,6 +140,10 @@ export type FinalistWithTitle = {
   gameId: string;
   title: string;
   votes: number;
+  developer: string | null;
+  publisher: string | null;
+  genre: string | null;
+  coverArtUrl: string | null;
 };
 
 export type SessionView = {

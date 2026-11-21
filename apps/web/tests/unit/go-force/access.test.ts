@@ -7,6 +7,7 @@ import {
   canStartGoForceSession,
   canSubmitFinalBallot,
   canSubmitGameVote,
+  canSeeGoForceNavigation,
   canViewGoForcePage,
   canViewResults,
 } from "@/features/go-force/access";
@@ -26,6 +27,14 @@ describe("Go Force access rules", () => {
     expect(canViewGoForcePage(false, ["reader"])).toBe(false);
     expect(canViewGoForcePage(true, ["reader"])).toBe(true);
     expect(canViewGoForcePage(false, ["admin"])).toBe(true);
+  });
+
+  it("shows navigation to admins always and to participants only on a visible active session", () => {
+    expect(canSeeGoForceNavigation(false, false, ["admin"])).toBe(true);
+    expect(canSeeGoForceNavigation(true, false, ["admin"])).toBe(true);
+    expect(canSeeGoForceNavigation(true, true, ["reader"])).toBe(true);
+    expect(canSeeGoForceNavigation(false, true, ["reader"])).toBe(false);
+    expect(canSeeGoForceNavigation(true, false, ["reader"])).toBe(false);
   });
 
   it("admits the game master, roster players, and admins to a session", () => {

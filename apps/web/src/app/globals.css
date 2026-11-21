@@ -160,6 +160,73 @@
   to { transform: rotate(360deg); }
 }
 
+@keyframes go-force-wheel-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(1510deg); }
+}
+
+@keyframes go-force-wheel-reveal {
+  0%, 88% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@layer components {
+  .go-force-roulette { display: grid; justify-items: center; gap: .5rem; }
+  .go-force-roulette__wheel {
+    position: relative;
+    display: grid;
+    width: min(15rem, 62vw);
+    aspect-ratio: 1;
+    place-items: center;
+    border: .5rem solid var(--blue);
+    border-radius: 50%;
+    background: conic-gradient(
+      var(--yellow) 0deg 45deg,
+      var(--red) 45deg 90deg,
+      var(--blue) 90deg 135deg,
+      var(--pink) 135deg 180deg,
+      var(--yellow) 180deg 225deg,
+      var(--red) 225deg 270deg,
+      var(--blue) 270deg 315deg,
+      var(--pink) 315deg 360deg
+    );
+    box-shadow: 0 0 0 .2rem var(--card), 0 0 0 .4rem var(--yellow);
+    animation: go-force-wheel-spin 2.2s cubic-bezier(.11,.72,.2,1) both;
+  }
+  .go-force-roulette__pointer {
+    position: absolute;
+    top: -.4rem;
+    left: calc(50% - .65rem);
+    z-index: 1;
+    width: 0;
+    height: 0;
+    border-right: .65rem solid transparent;
+    border-bottom: 1.15rem solid var(--red);
+    border-left: .65rem solid transparent;
+  }
+  .go-force-roulette__center {
+    display: grid;
+    width: 54%;
+    aspect-ratio: 1;
+    place-items: center;
+    padding: .65rem;
+    border: .25rem solid var(--yellow);
+    border-radius: 50%;
+    background: var(--card);
+    color: var(--blue);
+    font-family: var(--display);
+    font-size: clamp(.78rem, 3vw, 1.05rem);
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .go-force-roulette__spinning,
+  .go-force-roulette__selected { grid-area: 1 / 1; }
+  .go-force-roulette__selected { opacity: 0; animation: go-force-wheel-reveal 2.2s linear both; }
+  .go-force-roulette__caption { margin: 0; color: var(--muted); font-size: .9rem; text-align: center; }
+}
+
 @media (max-width: 760px) {
   .people-filters__field, .people-sort__field { flex: 1 1 100%; }
 }

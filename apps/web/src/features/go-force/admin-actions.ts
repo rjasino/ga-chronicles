@@ -1,10 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { canManageGoForce } from "@/features/go-force/access";
-import { annualGameInputSchema, pageVisibilitySchema, resultVisibilitySchema } from "@/features/go-force/admin-schemas";
+import { annualGameInputSchema, goForceVotingSettingsSchema, pageVisibilitySchema, resultVisibilitySchema } from "@/features/go-force/admin-schemas";
+import { articleImageExtension, validateImageFile } from "@/features/articles/body-image";
+import { GO_FORCE_COVER_BUCKET, GO_FORCE_COVER_MAX_SIZE } from "@/features/go-force/game-covers";
 
 export type AdminActionState = { error?: string; success?: string; gameId?: string };
 
@@ -31,6 +34,30 @@ export async function saveGoForcePageVisibility(_state: AdminActionState, formDa
   return { success: parsed.data.pageVisible ? "The Go Force page is visible." : "The Go Force page is hidden." };
 }
 
+export async function saveGoForceVotingSettings(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const session = await getVerifiedSession();
+  if (!session || !canManageGoForce(session.roles)) return { error: "Only an admin can change Go Force voting timers." };
+  const parsed = goForceVotingSettingsSchema.safeParse({
+    roundVotingSeconds: formData.get("roundVotingSeconds"),
+    finalBallotSeconds: formData.get("finalBallotSeconds"),
+  });
+  if (!parsed.success) return { error: "Set each voting timer between 5 and 600 seconds." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("go_force_page_settings")
+    .update({
+      round_voting_seconds: parsed.data.roundVotingSeconds,
+      final_ballot_seconds: parsed.data.finalBallotSeconds,
+      updated_by: session.userId,
+    })
+    .eq("id", true);
+  if (error) return { error: "The Go Force voting timers could not be saved." };
+
+  revalidateAdminContent();
+  return { success: "Go Force voting timers saved." };
+}
+
 export async function saveAnnualGame(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
   const session = await getVerifiedSession();
   if (!session || !canManageGoForce(session.roles)) return { error: "Only an admin can manage the annual game list." };
@@ -40,21 +67,53 @@ export async function saveAnnualGame(_state: AdminActionState, formData: FormDat
     gotyYear: formData.get("gotyYear"),
     eligibilityState: String(formData.get("eligibilityState") ?? "eligible"),
     displayOrder: formData.get("displayOrder") ?? 0,
+    developer: String(formData.get("developer") ?? ""),
+    publisher: String(formData.get("publisher") ?? ""),
+    genre: String(formData.get("genre") ?? ""),
+    coverArtUrl: String(formData.get("coverArtUrl") ?? ""),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the game details." };
+
+  const fileValue = formData.get("coverArtFile");
+  const coverFile = fileValue instanceof File && fileValue.size > 0 ? fileValue : null;
+  let coverArtUrl = parsed.data.coverArtUrl ?? null;
+  let uploadedObjectPath: string | null = null;
+  const supabase = await createClient();
+  if (coverFile) {
+    const extension = articleImageExtension(coverFile.type);
+    if (!extension) return { error: "Game cover art must be JPEG, PNG, or WebP." };
+    const validationError = await validateImageFile(coverFile, GO_FORCE_COVER_MAX_SIZE, "Game cover art");
+    if (validationError) return { error: validationError };
+
+    uploadedObjectPath = `${session.userId}/${randomUUID()}.${extension}`;
+    const { error } = await supabase.storage.from(GO_FORCE_COVER_BUCKET).upload(uploadedObjectPath, coverFile, {
+      cacheControl: "3600",
+      contentType: coverFile.type,
+      upsert: false,
+    });
+    if (error) return { error: "The game cover art could not be uploaded. Try again." };
+    coverArtUrl = supabase.storage.from(GO_FORCE_COVER_BUCKET).getPublicUrl(uploadedObjectPath).data.publicUrl;
+  }
 
   const payload = {
     title: parsed.data.title,
     goty_year: parsed.data.gotyYear,
     eligibility_state: parsed.data.eligibilityState,
     display_order: parsed.data.displayOrder ?? 0,
+    developer: parsed.data.developer ?? null,
+    publisher: parsed.data.publisher ?? null,
+    genre: parsed.data.genre ?? null,
+    cover_art_url: coverArtUrl,
   };
-  const supabase = await createClient();
   const result = parsed.data.id
     ? await supabase.from("go_force_annual_games").update(payload).eq("id", parsed.data.id).select("id").maybeSingle()
     : await supabase.from("go_force_annual_games").insert(payload).select("id").single();
 
   if (result.error || !result.data) {
+    if (uploadedObjectPath) {
+      const { error: cleanupError } = await supabase.storage.from(GO_FORCE_COVER_BUCKET).remove([uploadedObjectPath]);
+      if (cleanupError) console.error("Could not clean up a Go Force cover after the game save failed.", cleanupError);
+    }
     if (result.error?.code === "23505") return { error: "That game is already on the list for this year." };
     return { error: "The game could not be saved." };
   }

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { GoForceLiveRefresh } from "@/components/go-force/live-refresh";
+import { GameDetailsCard } from "@/components/go-force/game-details-card";
+import { VotingCountdown } from "@/components/go-force/voting-countdown";
 import { Button } from "@/components/ui/button";
 import { Message } from "@/components/ui/message";
 import { Select, TextArea } from "@/components/ui/text-field";
@@ -107,9 +109,25 @@ export function PlayerSession({ data }: { data: PlayerSessionView }) {
           <p className="mt-2 text-muted">This round allows {goLimitForRound(currentRound.round_number)} go vote{goLimitForRound(currentRound.round_number) === 1 ? "" : "s"} per player. No-go votes are unlimited.</p>
 
           {currentSelection ? (
-            <div className="go-force-card mt-4 border border-line bg-paper p-5" aria-live="polite">
+            <div className="go-force-card mt-4 border border-line bg-paper p-5">
               <p className="article-type m-0 mb-1 text-[.75rem] font-bold tracking-[.06em] text-red uppercase">Now voting</p>
-              <h3 className="m-0 font-display text-[1.5rem] text-blue">{currentSelection.game?.title_snapshot ?? "Selected game"}</h3>
+              <GameDetailsCard
+                title={currentSelection.game?.title_snapshot ?? "Selected game"}
+                developer={currentSelection.game?.developer_snapshot}
+                publisher={currentSelection.game?.publisher_snapshot}
+                genre={currentSelection.game?.genre_snapshot}
+                coverArtUrl={currentSelection.game?.cover_art_url_snapshot}
+              />
+              {currentSelection.voting_deadline_at && (
+                <div className="mt-3">
+                  <VotingCountdown
+                    kind="round"
+                    deadlineAt={currentSelection.voting_deadline_at}
+                    sessionId={session.id}
+                    selectionId={currentSelection.id}
+                  />
+                </div>
+              )}
               {ownVote ? (
                 <p className="mt-3">Your vote is recorded as <strong>{ownVote.choice}</strong>. Watch the game master&apos;s screen for the result.</p>
               ) : (
@@ -136,8 +154,21 @@ export function PlayerSession({ data }: { data: PlayerSessionView }) {
           <p className="article-type m-0 mb-1 text-[.75rem] font-bold tracking-[.06em] text-red uppercase">Final ballot</p>
           <h2 className="m-0 font-display text-[1.7rem] text-blue">Pick your Game of the Year</h2>
           <p className="mt-2 text-muted">The final ballot contains every Round 3 finalist. You may add one optional remark.</p>
-          <ul className="m-4 list-disc pl-5">
-            {finalists.map((finalist) => <li key={finalist.gameId}>{finalist.title}</li>)}
+          {session.final_ballot_deadline_at && (
+            <VotingCountdown kind="final" deadlineAt={session.final_ballot_deadline_at} sessionId={session.id} />
+          )}
+          <ul className="m-4 grid list-none gap-3 p-0">
+            {finalists.map((finalist) => (
+              <li key={finalist.gameId}>
+                <GameDetailsCard
+                  title={finalist.title}
+                  developer={finalist.developer}
+                  publisher={finalist.publisher}
+                  genre={finalist.genre}
+                  coverArtUrl={finalist.coverArtUrl}
+                />
+              </li>
+            ))}
           </ul>
           {ownFinalBallotVote ? (
             <div className="border-l-4 border-success-line bg-success-bg px-4 py-3 text-success-ink">

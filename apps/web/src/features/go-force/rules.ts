@@ -119,10 +119,10 @@ export function winnersFromTally(tally: Readonly<Record<string, number>>): strin
   return entries.filter(([, votes]) => votes === highest).map(([gameId]) => gameId);
 }
 
-export function finalistVoteTotals(
-  finalists: readonly { gameId: string; title: string }[],
+export function finalistVoteTotals<T extends { gameId: string; title: string }>(
+  finalists: readonly T[],
   tally: Readonly<Record<string, number>>,
-) {
+): (T & { votes: number })[] {
   return finalists.map((finalist) => ({
     ...finalist,
     votes: tally[finalist.gameId] ?? 0,

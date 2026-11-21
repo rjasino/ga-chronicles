@@ -29,6 +29,10 @@ export function canViewGoForcePage(pageVisible: boolean, roles: readonly Role[])
   return pageVisible || isGoForceAdmin(roles);
 }
 
+export function canSeeGoForceNavigation(pageVisible: boolean, hasActiveSession: boolean, roles: readonly Role[]): boolean {
+  return isGoForceAdmin(roles) || (pageVisible && hasActiveSession);
+}
+
 export function canAccessGoForceSession(context: GoForceAccessContext): boolean {
   if (!context.session) return false;
   if (isGoForceAdmin(context.roles)) return true;

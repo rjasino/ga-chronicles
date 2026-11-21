@@ -85,3 +85,29 @@ export async function closeGoForceSelection(_state: GameActionState, formData: F
     success: data?.outcome === "advanced" ? `Voting closed. The game advances with ${goVotes} go vote${goVotes === 1 ? "" : "s"}.` : "Voting closed. The game is eliminated.",
   };
 }
+
+export async function expireGoForceSelection(selectionId: string): Promise<{ closed: boolean }> {
+  const session = await getVerifiedSession();
+  if (!session || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectionId)) {
+    return { closed: false };
+  }
+
+  const supabase = await createClient();
+  const { data: selection } = await supabase
+    .from("go_force_selections")
+    .select("round_id")
+    .eq("id", selectionId)
+    .maybeSingle();
+  if (!selection) return { closed: false };
+  const { data: round } = await supabase.from("go_force_rounds").select("session_id").eq("id", selection.round_id).maybeSingle();
+  const sessionId = round?.session_id;
+  if (!sessionId) return { closed: false };
+
+  const { data, error } = await supabase.rpc("go_force_expire_selection", { target_selection: selectionId });
+  if (error) return { closed: false };
+  if (data?.closed !== true) return { closed: false };
+
+  await publishGoForceSessionUpdate(sessionId);
+  revalidateSession(sessionId);
+  return { closed: true };
+}
