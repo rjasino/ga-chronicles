@@ -551,6 +551,9 @@ where sel.round_id = r.id
   and sel.voting_closed_at is null
   and sel.voting_deadline_at is null;
 
-update public.go_force_sessions
-set final_ballot_deadline_at = clock_timestamp() + make_interval(secs => final_ballot_seconds)
-where status = 'final_ballot' and final_ballot_deadline_at is null;
+update public.go_force_sessions as session_row
+set final_ballot_deadline_at = clock_timestamp() + make_interval(secs => settings.final_ballot_seconds)
+from public.go_force_page_settings as settings
+where settings.id = true
+  and session_row.status = 'final_ballot'
+  and session_row.final_ballot_deadline_at is null;

@@ -1,5 +1,5 @@
 begin;
-select plan(14);
+select plan(15);
 
 create function pg_temp.test_latest_selection(target_session uuid)
 returns uuid language sql as $$
@@ -137,6 +137,21 @@ select ok(
   (select final_ballot_deadline_at between clock_timestamp() and clock_timestamp() + interval '45 seconds'
    from public.go_force_sessions where id = '40000000-0000-4000-8000-000000000092'),
   'entering the final ballot starts its separate deadline'
+);
+update public.go_force_sessions
+set final_ballot_deadline_at = null
+where id = '40000000-0000-4000-8000-000000000092';
+update public.go_force_sessions as session_row
+set final_ballot_deadline_at = clock_timestamp() + make_interval(secs => settings.final_ballot_seconds)
+from public.go_force_page_settings as settings
+where settings.id = true
+  and session_row.id = '40000000-0000-4000-8000-000000000092'
+  and session_row.status = 'final_ballot'
+  and session_row.final_ballot_deadline_at is null;
+select ok(
+  (select final_ballot_deadline_at between clock_timestamp() and clock_timestamp() + interval '45 seconds'
+   from public.go_force_sessions where id = '40000000-0000-4000-8000-000000000092'),
+  'the migration-style final ballot deadline backfill reads the settings row'
 );
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);

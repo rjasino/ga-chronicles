@@ -9,7 +9,7 @@ import { annualGameInputSchema, goForceVotingSettingsSchema, pageVisibilitySchem
 import { articleImageExtension, validateImageFile } from "@/features/articles/body-image";
 import { GO_FORCE_COVER_BUCKET, GO_FORCE_COVER_MAX_SIZE } from "@/features/go-force/game-covers";
 
-export type AdminActionState = { error?: string; success?: string; gameId?: string };
+export type AdminActionState = { error?: string; success?: string; gameId?: string; pageVisible?: boolean };
 
 function revalidateAdminContent() {
   revalidatePath("/go-force");
@@ -23,15 +23,24 @@ export async function saveGoForcePageVisibility(_state: AdminActionState, formDa
   if (!parsed.success) return { error: "Choose whether the page is visible." };
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("go_force_page_settings")
     .update({ page_visible: parsed.data.pageVisible, updated_by: session.userId })
-    .eq("id", true);
-  if (error) return { error: "The Go Force page visibility could not be saved." };
+    .eq("id", true)
+    .select("page_visible")
+    .maybeSingle();
+  if (error || !data) {
+    if (error) console.error("Go Force page visibility save failed.", { code: error.code, message: error.message });
+    else console.error("Go Force page visibility update returned no settings row.");
+    return { error: "The Go Force page visibility could not be saved." };
+  }
 
   revalidatePath("/", "layout");
   revalidateAdminContent();
-  return { success: parsed.data.pageVisible ? "The Go Force page is visible." : "The Go Force page is hidden." };
+  return {
+    pageVisible: data.page_visible,
+    success: data.page_visible ? "The Go Force page is visible." : "The Go Force page is hidden.",
+  };
 }
 
 export async function saveGoForceVotingSettings(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
@@ -44,15 +53,21 @@ export async function saveGoForceVotingSettings(_state: AdminActionState, formDa
   if (!parsed.success) return { error: "Set each voting timer between 5 and 600 seconds." };
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("go_force_page_settings")
     .update({
       round_voting_seconds: parsed.data.roundVotingSeconds,
       final_ballot_seconds: parsed.data.finalBallotSeconds,
       updated_by: session.userId,
     })
-    .eq("id", true);
-  if (error) return { error: "The Go Force voting timers could not be saved." };
+    .eq("id", true)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) {
+    if (error) console.error("Go Force voting timer settings save failed.", { code: error.code, message: error.message });
+    else console.error("Go Force voting timer update returned no settings row.");
+    return { error: "The Go Force voting timers could not be saved." };
+  }
 
   revalidateAdminContent();
   return { success: "Go Force voting timers saved." };
@@ -91,7 +106,10 @@ export async function saveAnnualGame(_state: AdminActionState, formData: FormDat
       contentType: coverFile.type,
       upsert: false,
     });
-    if (error) return { error: "The game cover art could not be uploaded. Try again." };
+    if (error) {
+      console.error("Go Force cover upload failed.", { name: error.name, message: error.message });
+      return { error: "The game cover art could not be uploaded. Try again." };
+    }
     coverArtUrl = supabase.storage.from(GO_FORCE_COVER_BUCKET).getPublicUrl(uploadedObjectPath).data.publicUrl;
   }
 
@@ -115,6 +133,11 @@ export async function saveAnnualGame(_state: AdminActionState, formData: FormDat
       if (cleanupError) console.error("Could not clean up a Go Force cover after the game save failed.", cleanupError);
     }
     if (result.error?.code === "23505") return { error: "That game is already on the list for this year." };
+    if (result.error) {
+      console.error("Go Force annual game save failed.", { code: result.error.code, message: result.error.message });
+    } else {
+      console.error("Go Force annual game save returned no saved row.");
+    }
     return { error: "The game could not be saved." };
   }
 

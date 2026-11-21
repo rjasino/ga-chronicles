@@ -24,9 +24,15 @@ import type { AnnualGame } from "@/features/go-force/types";
 
 function VisibilityForm({ visible }: { visible: boolean }) {
   const [state, action, pending] = useActionState(saveGoForcePageVisibility, {} satisfies AdminActionState);
+  const persistedVisible = state.pageVisible ?? visible;
   return (
     <form className="form-stack settings-form" action={action}>
-      <Checkbox name="page_visible" defaultChecked={visible} label="Show the public Go Force page" />
+      <Checkbox
+        key={persistedVisible ? "visible" : "hidden"}
+        name="page_visible"
+        defaultChecked={persistedVisible}
+        label="Show the public Go Force page"
+      />
       <p className="m-0 text-[.88rem] text-muted">Hiding the page does not block the game master from an active session.</p>
       {state.error && <Message tone="error">{state.error}</Message>}
       {state.success && <Message tone="success">{state.success}</Message>}
