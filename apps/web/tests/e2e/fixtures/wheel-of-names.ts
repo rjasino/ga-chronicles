@@ -6,7 +6,7 @@ export type MockWheelConfig = {
 };
 
 export const MOCK_WHEEL_ANIMATION =
-  "R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+  "UklGRkAAAABXRUJQVlA4WAoAAAAQAAAAAAAAAAAAQUxQSAIAAAAAAFZQOCAYAAAAMAEAnQEqAQABAAFAJiWkAANwAP79NmgA";
 
 export function createWheelOfNamesResponse(wheelConfig: MockWheelConfig) {
   const winner = wheelConfig.entries[0];

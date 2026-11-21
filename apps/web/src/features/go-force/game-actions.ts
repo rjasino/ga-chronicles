@@ -15,6 +15,7 @@ export type GameActionState = {
   selectionId?: string;
   title?: string;
   animation?: string;
+  animationFormat?: "gif" | "webp";
 };
 
 function revalidateSession(sessionId: string) {
@@ -23,7 +24,10 @@ function revalidateSession(sessionId: string) {
   revalidatePath("/admin/go-force");
 }
 
-export async function drawGoForceSelection(_state: GameActionState, formData: FormData): Promise<GameActionState> {
+export async function drawGoForceSelection(
+  _state: GameActionState,
+  formData: FormData,
+): Promise<GameActionState> {
   const session = await getVerifiedSession();
   if (!session) return { error: "Sign in to run the roulette." };
   const sessionId = String(formData.get("sessionId") ?? "");
@@ -55,10 +59,19 @@ export async function drawGoForceSelection(_state: GameActionState, formData: Fo
       view.remainingGames.map((game) => ({ id: game.id, text: game.title_snapshot })),
     );
   } catch (error) {
+    if (error instanceof WheelOfNamesError) {
+      return {
+        error: error.requestId ? `${error.message} (Reference ${error.requestId})` : error.message,
+      };
+    }
+    const errorObject = error instanceof Error ? error : null;
+    console.error("[Go Force] unexpected wheel spin action error", {
+      sessionId,
+      errorName: errorObject?.name ?? "UnknownError",
+      stack: errorObject?.stack?.split("\n").slice(1).join("\n"),
+    });
     return {
-      error: error instanceof WheelOfNamesError || error instanceof Error
-        ? error.message
-        : "Wheel of Names could not complete the spin. Please retry.",
+      error: "Wheel of Names could not complete the spin. Please retry.",
     };
   }
 
@@ -67,7 +80,8 @@ export async function drawGoForceSelection(_state: GameActionState, formData: Fo
     target_session: sessionId,
     target_game: spin.winner.id,
   });
-  if (error) return { error: goForceErrorMessage(error, "The game could not be committed. Please retry.") };
+  if (error)
+    return { error: goForceErrorMessage(error, "The game could not be committed. Please retry.") };
 
   const selectionId = typeof data?.selectionId === "string" ? data.selectionId : undefined;
   const title = typeof data?.title === "string" ? data.title : undefined;
@@ -81,11 +95,15 @@ export async function drawGoForceSelection(_state: GameActionState, formData: Fo
     selectionId,
     title,
     animation: spin.animation,
+    animationFormat: spin.animationFormat,
     success: `${title} is up for a vote.`,
   };
 }
 
-export async function submitGoForceGameVote(_state: GameActionState, formData: FormData): Promise<GameActionState> {
+export async function submitGoForceGameVote(
+  _state: GameActionState,
+  formData: FormData,
+): Promise<GameActionState> {
   const session = await getVerifiedSession();
   if (!session) return { error: "Sign in to vote." };
   const parsed = parseGameVoteForm(formData);
@@ -98,7 +116,11 @@ export async function submitGoForceGameVote(_state: GameActionState, formData: F
     .eq("id", parsed.data.selectionId)
     .maybeSingle();
   const { data: round } = selection
-    ? await supabase.from("go_force_rounds").select("session_id").eq("id", selection.round_id).maybeSingle()
+    ? await supabase
+        .from("go_force_rounds")
+        .select("session_id")
+        .eq("id", selection.round_id)
+        .maybeSingle()
     : { data: null };
   const sessionId = round?.session_id ?? null;
 
@@ -118,7 +140,10 @@ export async function submitGoForceGameVote(_state: GameActionState, formData: F
   };
 }
 
-export async function closeGoForceSelection(_state: GameActionState, formData: FormData): Promise<GameActionState> {
+export async function closeGoForceSelection(
+  _state: GameActionState,
+  formData: FormData,
+): Promise<GameActionState> {
   const session = await getVerifiedSession();
   if (!session) return { error: "Sign in to close this selection." };
   const selectionId = String(formData.get("selectionId") ?? "");
@@ -126,20 +151,28 @@ export async function closeGoForceSelection(_state: GameActionState, formData: F
   if (!selectionId || !sessionId) return { error: "Choose a game selection to close." };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("go_force_close_selection", { target_selection: selectionId });
+  const { data, error } = await supabase.rpc("go_force_close_selection", {
+    target_selection: selectionId,
+  });
   if (error) return { error: goForceErrorMessage(error, "The selection could not be closed.") };
 
   await publishGoForceSessionUpdate(sessionId);
   revalidateSession(sessionId);
   const goVotes = typeof data?.goVotes === "number" ? data.goVotes : 0;
   return {
-    success: data?.outcome === "advanced" ? `Voting closed. The game advances with ${goVotes} go vote${goVotes === 1 ? "" : "s"}.` : "Voting closed. The game is eliminated.",
+    success:
+      data?.outcome === "advanced"
+        ? `Voting closed. The game advances with ${goVotes} go vote${goVotes === 1 ? "" : "s"}.`
+        : "Voting closed. The game is eliminated.",
   };
 }
 
 export async function expireGoForceSelection(selectionId: string): Promise<{ closed: boolean }> {
   const session = await getVerifiedSession();
-  if (!session || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectionId)) {
+  if (
+    !session ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectionId)
+  ) {
     return { closed: false };
   }
 
@@ -150,11 +183,17 @@ export async function expireGoForceSelection(selectionId: string): Promise<{ clo
     .eq("id", selectionId)
     .maybeSingle();
   if (!selection) return { closed: false };
-  const { data: round } = await supabase.from("go_force_rounds").select("session_id").eq("id", selection.round_id).maybeSingle();
+  const { data: round } = await supabase
+    .from("go_force_rounds")
+    .select("session_id")
+    .eq("id", selection.round_id)
+    .maybeSingle();
   const sessionId = round?.session_id;
   if (!sessionId) return { closed: false };
 
-  const { data, error } = await supabase.rpc("go_force_expire_selection", { target_selection: selectionId });
+  const { data, error } = await supabase.rpc("go_force_expire_selection", {
+    target_selection: selectionId,
+  });
   if (error) return { closed: false };
   if (data?.closed !== true) return { closed: false };
 

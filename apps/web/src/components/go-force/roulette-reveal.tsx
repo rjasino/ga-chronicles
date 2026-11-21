@@ -2,6 +2,7 @@ type RouletteRevealProps = {
   status?: "pending" | "success" | "error";
   title?: string;
   animation?: string;
+  animationFormat?: "gif" | "webp";
   error?: string;
 };
 
@@ -9,6 +10,7 @@ export function RouletteReveal({
   status = "success",
   title,
   animation,
+  animationFormat = "gif",
   error,
 }: RouletteRevealProps) {
   if (status === "pending") {
@@ -45,7 +47,7 @@ export function RouletteReveal({
       {animation && (
         <img
           className="go-force-roulette__animation"
-          src={`data:image/gif;base64,${animation}`}
+          src={`data:image/${animationFormat};base64,${animation}`}
           alt={`Wheel of Names spin animation ending with ${selectedTitle}`}
         />
       )}
@@ -56,8 +58,12 @@ export function RouletteReveal({
       <figcaption className="go-force-roulette__caption">
         {animation ? (
           <>
-            <span className="go-force-roulette__animated-note">Animated reveal of the server-selected game.</span>
-            <span className="go-force-roulette__reduced-motion-note">Static result shown because reduced motion is enabled.</span>
+            <span className="go-force-roulette__animated-note">
+              Animated reveal of the server-selected game.
+            </span>
+            <span className="go-force-roulette__reduced-motion-note">
+              Static result shown because reduced motion is enabled.
+            </span>
           </>
         ) : (
           "The committed server-selected result."

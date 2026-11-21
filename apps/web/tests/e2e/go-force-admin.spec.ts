@@ -1,8 +1,20 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 
-test("admins control Go Force visibility and maintain the annual list without redeploying", async ({ page, browser }) => {
+test("admins control Go Force visibility and maintain the annual list without redeploying", async ({
+  page,
+  browser,
+}) => {
   test.setTimeout(90_000);
+  const reactFormWarnings: string[] = [];
+  page.on("console", (message) => {
+    if (
+      message.type() === "error" &&
+      message.text().includes("Cannot specify a encType or method")
+    ) {
+      reactFormWarnings.push(message.text());
+    }
+  });
   await page.goto("/sign-in");
   await page.getByLabel("Username").fill("localadmin");
   await page.getByLabel("Password").fill("local-admin-password");
@@ -11,6 +23,7 @@ test("admins control Go Force visibility and maintain the annual list without re
   await expect(page.getByRole("link", { name: "Go Force", exact: true })).toBeVisible();
 
   await page.goto("/admin/go-force");
+  expect(reactFormWarnings).toEqual([]);
   const visibility = page.getByLabel("Show the public Go Force page");
   if (!(await visibility.isChecked())) {
     await visibility.check();
@@ -71,23 +84,33 @@ test("admins control Go Force visibility and maintain the annual list without re
 
   const addedRow = page.locator("li").filter({ has: page.locator(`input[value="${title}"]`) });
   const gameId = await addedRow.locator('input[name="id"]').inputValue();
-  const row = page.locator("li").filter({ has: page.locator(`input[name="id"][value="${gameId}"]`) });
+  const row = page
+    .locator("li")
+    .filter({ has: page.locator(`input[name="id"][value="${gameId}"]`) });
   const editedTitle = `${title} edited`;
   await row.getByLabel("Cover art URL (optional)").fill("https://example.test/game-cover.webp");
   await row.getByLabel("Game title").fill(editedTitle);
   await row.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Game updated.")).toBeVisible();
   await expect(page.locator(`input[value="${editedTitle}"]`)).toBeVisible();
-  const editedRow = page.locator("li").filter({ has: page.locator(`input[value="${editedTitle}"]`) });
+  const editedRow = page
+    .locator("li")
+    .filter({ has: page.locator(`input[value="${editedTitle}"]`) });
   await expect(editedRow.getByLabel("Developer (optional)")).toHaveValue("Test Studio");
   await expect(editedRow.getByLabel("Publisher (optional)")).toHaveValue("Test Publisher");
   await expect(editedRow.getByLabel("Genre (optional)")).toHaveValue("Action");
-  await expect(editedRow.getByLabel("Cover art URL (optional)")).toHaveValue("https://example.test/game-cover.webp");
+  await expect(editedRow.getByLabel("Cover art URL (optional)")).toHaveValue(
+    "https://example.test/game-cover.webp",
+  );
 
-  await editedRow.getByLabel("Upload cover art (optional)").setInputFiles(path.resolve(process.cwd(), "../../docs/neon_ga_logo_2.png"));
+  await editedRow
+    .getByLabel("Upload cover art (optional)")
+    .setInputFiles(path.resolve(process.cwd(), "../../docs/neon_ga_logo_2.png"));
   await editedRow.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Game updated.")).toBeVisible();
-  await expect(editedRow.getByLabel("Cover art URL (optional)")).toHaveValue(/\/storage\/v1\/object\/public\/go-force-covers\//);
+  await expect(editedRow.getByLabel("Cover art URL (optional)")).toHaveValue(
+    /\/storage\/v1\/object\/public\/go-force-covers\//,
+  );
   await editedRow.getByRole("button", { name: "Remove" }).click();
   await expect(page.locator(`input[value="${editedTitle}"]`)).toBeHidden();
 
@@ -95,7 +118,58 @@ test("admins control Go Force visibility and maintain the annual list without re
   await expect(page.getByRole("heading", { name: "Go Force", level: 1 })).toBeVisible();
 });
 
-test("Go Force navigation is visible to admins always and rostered players only for visible active sessions", async ({ page, browser }) => {
+test("annual-game Server Action forms keep uploads and avoid React encoding warnings", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const reactFormWarnings: string[] = [];
+  page.on("console", (message) => {
+    if (
+      message.type() === "error" &&
+      message.text().includes("Cannot specify a encType or method")
+    ) {
+      reactFormWarnings.push(message.text());
+    }
+  });
+
+  await page.goto("/sign-in");
+  await page.getByLabel("Username").fill("localadmin");
+  await page.getByLabel("Password").fill("local-admin-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto("/admin/go-force");
+  expect(reactFormWarnings).toEqual([]);
+
+  const runId = Date.now();
+  const title = `Wheel form upload ${runId}`;
+  await page.getByLabel("Game title").first().fill(title);
+  await page
+    .getByLabel("GOTY year")
+    .first()
+    .fill(String(2090 + (runId % 10)));
+  await page.getByLabel("Display order").first().fill("1");
+  await page.getByRole("button", { name: "Add game" }).click();
+  await expect(page.getByText("Game added.")).toBeVisible();
+
+  const row = page.locator("li").filter({ has: page.locator(`input[value="${title}"]`) });
+  await row
+    .getByLabel("Upload cover art (optional)")
+    .setInputFiles(path.resolve(process.cwd(), "../../docs/neon_ga_logo_2.png"));
+  await row.getByRole("button", { name: "Save" }).click();
+  await expect(row.getByLabel("Cover art URL (optional)")).toHaveValue(
+    /\/storage\/v1\/object\/public\/go-force-covers\//,
+  );
+  await expect(page.getByText("Game updated.")).toBeVisible();
+
+  await row.getByRole("button", { name: "Remove" }).click();
+  await expect(page.locator(`input[value="${title}"]`)).toBeHidden();
+  expect(reactFormWarnings).toEqual([]);
+});
+
+test("Go Force navigation is visible to admins always and rostered players only for visible active sessions", async ({
+  page,
+  browser,
+}) => {
   test.setTimeout(90_000);
   await page.goto("/sign-in");
   await page.getByLabel("Username").fill("localadmin");

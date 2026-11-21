@@ -17,12 +17,17 @@ describe("Wheel of Names roulette reveal", () => {
       <RouletteReveal
         status="success"
         title="Game One"
-        animation="R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+        animation="UklGRkAAAABXRUJQVlA4WAoAAAAQAAAAAAAAAAAAQUxQSAIAAAAAAFZQOCAYAAAAMAEAnQEqAQABAAFAJiWkAANwAP79NmgA"
+        animationFormat="webp"
       />,
     );
 
-    expect(screen.getByRole("img", { name: /wheel of names spin animation ending with game one/i }))
-      .toHaveAttribute("src", "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=");
+    expect(
+      screen.getByRole("img", { name: /wheel of names spin animation ending with game one/i }),
+    ).toHaveAttribute(
+      "src",
+      "data:image/webp;base64,UklGRkAAAABXRUJQVlA4WAoAAAAQAAAAAAAAAAAAQUxQSAIAAAAAAFZQOCAYAAAAMAEAnQEqAQABAAFAJiWkAANwAP79NmgA",
+    );
     expect(screen.getByText("Game One")).toBeInTheDocument();
     expect(screen.getByText("Animated reveal of the server-selected game.")).toBeInTheDocument();
   });

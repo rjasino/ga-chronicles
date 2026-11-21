@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { getWheelOfNamesApiKey } from "@/lib/env";
 
@@ -7,8 +8,11 @@ export type WheelOfNamesEntry = {
   text: string;
 };
 
+export type WheelOfNamesAnimationFormat = "gif" | "webp";
+
 export type WheelOfNamesSpinResult = {
   animation: string;
+  animationFormat: WheelOfNamesAnimationFormat;
   winner: WheelOfNamesEntry;
 };
 
@@ -19,10 +23,11 @@ export type WheelConfig = {
 };
 
 const DEFAULT_ANIMATE_URL = "https://wheelofnames.com/api/v3/wheels/animate";
-const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const REQUESTED_IMAGE_FORMAT = "webp" as const;
+const MAX_ANIMATION_BASE64_LENGTH = 12 * 1024 * 1024;
 
 const spinResponseSchema = z.object({
-  animation: z.string().min(4).regex(BASE64_PATTERN),
+  animation: z.string().min(4),
   winner: z.object({
     id: z.string().min(1),
     text: z.string().min(1),
@@ -30,10 +35,49 @@ const spinResponseSchema = z.object({
 });
 
 export class WheelOfNamesError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly requestId?: string,
+  ) {
     super(message);
     this.name = "WheelOfNamesError";
   }
+}
+
+function isBase64Animation(value: string): boolean {
+  if (value.length < 4 || value.length > MAX_ANIMATION_BASE64_LENGTH || value.length % 4 !== 0) {
+    return false;
+  }
+
+  const paddingLength = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+  const contentEnd = value.length - paddingLength;
+
+  for (let index = 0; index < contentEnd; index += 1) {
+    const code = value.charCodeAt(index);
+    const isLetter = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+    const isDigit = code >= 48 && code <= 57;
+    if (!isLetter && !isDigit && code !== 43 && code !== 47) return false;
+  }
+
+  for (let index = contentEnd; index < value.length; index += 1) {
+    if (value.charCodeAt(index) !== 61) return false;
+  }
+
+  return true;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function logSpinFailure(requestId: string, stage: string, error: unknown) {
+  const errorObject = error instanceof Error ? error : null;
+  console.error("[Wheel of Names] spin stage failed", {
+    requestId,
+    stage,
+    errorName: errorObject?.name ?? "UnknownError",
+    stack: errorObject?.stack?.split("\n").slice(1).join("\n"),
+  });
 }
 
 export function buildWheelConfig(entries: WheelOfNamesEntry[]): WheelConfig {
@@ -51,10 +95,28 @@ export function buildWheelConfig(entries: WheelOfNamesEntry[]): WheelConfig {
 export async function spinWheelOfNames(
   entries: WheelOfNamesEntry[],
 ): Promise<WheelOfNamesSpinResult> {
-  const apiKey = getWheelOfNamesApiKey();
-  const wheelConfig = buildWheelConfig(entries);
-  const endpoint = process.env.WHEEL_OF_NAMES_API_URL || DEFAULT_ANIMATE_URL;
+  const requestId = randomUUID();
+  let apiKey: string;
+  let wheelConfig: WheelConfig;
 
+  try {
+    apiKey = getWheelOfNamesApiKey();
+    wheelConfig = buildWheelConfig(entries);
+  } catch (error) {
+    if (error instanceof WheelOfNamesError) {
+      throw new WheelOfNamesError(error.message, requestId);
+    }
+    if (error instanceof Error && error.message.includes("WHEEL_OF_NAMES_API_KEY")) {
+      throw new WheelOfNamesError(error.message, requestId);
+    }
+    logSpinFailure(requestId, "configuration", error);
+    throw new WheelOfNamesError(
+      "Wheel of Names could not start the spin. Please retry.",
+      requestId,
+    );
+  }
+
+  const endpoint = process.env.WHEEL_OF_NAMES_API_URL || DEFAULT_ANIMATE_URL;
   let response: Response;
   try {
     response = await fetch(endpoint, {
@@ -63,37 +125,118 @@ export async function spinWheelOfNames(
         "content-type": "application/json",
         "x-api-key": apiKey,
       },
-      body: JSON.stringify({ wheelConfig }),
+      body: JSON.stringify({
+        wheelConfig,
+        imageFormat: REQUESTED_IMAGE_FORMAT,
+        size: 300,
+        fps: 15,
+        loop: false,
+        responseFormat: "json",
+      }),
       cache: "no-store",
       signal: AbortSignal.timeout(30_000),
     });
-  } catch {
-    throw new WheelOfNamesError("Wheel of Names is unavailable right now. Please retry.");
+  } catch (error) {
+    logSpinFailure(requestId, "provider-request", error);
+    throw new WheelOfNamesError(
+      "Wheel of Names is unavailable right now. Please retry.",
+      requestId,
+    );
   }
 
+  console.info("[Wheel of Names] provider response", {
+    requestId,
+    status: response.status,
+    contentType: response.headers.get("content-type"),
+  });
+
   if (!response.ok) {
-    throw new WheelOfNamesError(`Wheel of Names could not complete the spin (HTTP ${response.status}).`);
+    throw new WheelOfNamesError(
+      `Wheel of Names could not complete the spin (HTTP ${response.status}).`,
+      requestId,
+    );
   }
 
   let body: unknown;
   try {
     body = await response.json();
-  } catch {
-    throw new WheelOfNamesError("Wheel of Names returned an invalid response. Please retry.");
+  } catch (error) {
+    logSpinFailure(requestId, "response-json", error);
+    throw new WheelOfNamesError(
+      "Wheel of Names returned an invalid response. Please retry.",
+      requestId,
+    );
   }
 
-  const parsed = spinResponseSchema.safeParse(body);
+  const bodyRecord = isRecord(body) ? body : {};
+  const winnerRecord = isRecord(bodyRecord.winner) ? bodyRecord.winner : {};
+  console.info("[Wheel of Names] response metadata", {
+    requestId,
+    animationLength: typeof bodyRecord.animation === "string" ? bodyRecord.animation.length : null,
+    winnerIdPresent: typeof winnerRecord.id === "string",
+    winnerTextPresent: typeof winnerRecord.text === "string",
+  });
+
+  let parsed;
+  try {
+    parsed = spinResponseSchema.safeParse(body);
+  } catch (error) {
+    logSpinFailure(requestId, "response-schema", error);
+    throw new WheelOfNamesError(
+      "Wheel of Names returned an invalid response. Please retry.",
+      requestId,
+    );
+  }
+
   if (!parsed.success) {
-    throw new WheelOfNamesError("Wheel of Names returned an invalid response. Please retry.");
+    console.warn("[Wheel of Names] response schema rejected", {
+      requestId,
+      issues: parsed.error.issues.map(({ code, path }) => ({ code, path })),
+    });
+    throw new WheelOfNamesError(
+      "Wheel of Names returned an invalid response. Please retry.",
+      requestId,
+    );
+  }
+
+  if (parsed.data.animation.length > MAX_ANIMATION_BASE64_LENGTH) {
+    console.warn("[Wheel of Names] animation exceeds size limit", {
+      requestId,
+      animationLength: parsed.data.animation.length,
+      maxLength: MAX_ANIMATION_BASE64_LENGTH,
+    });
+    throw new WheelOfNamesError(
+      "Wheel of Names returned an animation that is too large to display. Please contact an admin.",
+      requestId,
+    );
+  }
+  if (!isBase64Animation(parsed.data.animation)) {
+    console.warn("[Wheel of Names] animation is not valid base64", {
+      requestId,
+      animationLength: parsed.data.animation.length,
+    });
+    throw new WheelOfNamesError(
+      "Wheel of Names returned an invalid animation. Please retry.",
+      requestId,
+    );
   }
 
   const winningEntry = entries.find(({ id }) => id === parsed.data.winner.id);
   if (!winningEntry) {
-    throw new WheelOfNamesError("Wheel of Names returned a game that is not in the current game pool. Please retry.");
+    throw new WheelOfNamesError(
+      "Wheel of Names returned a game that is not in the current game pool. Please retry.",
+      requestId,
+    );
   }
   if (winningEntry.text !== parsed.data.winner.text) {
-    throw new WheelOfNamesError("Wheel of Names winner title did not match the current game pool. Please retry.");
+    throw new WheelOfNamesError(
+      "Wheel of Names winner title did not match the current game pool. Please retry.",
+      requestId,
+    );
   }
 
-  return parsed.data;
+  return {
+    ...parsed.data,
+    animationFormat: REQUESTED_IMAGE_FORMAT,
+  };
 }
