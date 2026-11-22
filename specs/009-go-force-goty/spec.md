@@ -4,11 +4,13 @@
 
 **Created**: 2026-11-20
 
-**Status**: Draft
+**Completed**: 2026-11-21
+
+**Status**: Done
 
 **Input**: User description: "Create the Go Force feature on the Ako Chronicles blog site to run a live, three-round Game of the Year selection. Players join through Discord and vote on games selected by the game master. Admins can manage page visibility and the eligible game list without redeployment. The event streams to the Game Ako channel, and results are published on a separate page after the event. Go Force must be ready before the owner-reported December 10, 2026 show date."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Run the live GOTY selection (Priority: P1)
 
@@ -70,7 +72,7 @@ After the live show and voting process are complete, the admin makes a separate 
 - A final ballot tie produces multiple co-winners rather than triggering a runoff.
 - The admin hides the page while an event is underway; active participants still need access to the session.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -95,7 +97,7 @@ After the live show and voting process are complete, the admin makes a separate 
 - **FR-019**: The system MUST preserve completed session results when the admin later edits the annual eligible game list.
 - **FR-020**: If no games advance from Round 1 or Round 2, the system MUST stop the session without a GOTY result and allow the game master to start a fresh session.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Eligible Game**: A game the admin has included for consideration in a particular GOTY year.
 - **Player**: A participant included in a session roster before the session begins.
@@ -105,7 +107,7 @@ After the live show and voting process are complete, the admin makes a separate 
 - **Final Ballot**: Each player's single selection from the Round 3 finalists, with an optional remark.
 - **GOTY Result**: The game or tied games declared winners by the final ballot.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

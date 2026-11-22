@@ -4,11 +4,13 @@
 
 **Created**: 2026-11-21
 
-**Status**: Draft
+**Completed**: 2026-11-22
+
+**Status**: Done
 
 **Input**: User description: "Instead of creating our own roulette let's use `wheelofnames` api. Refer to this docs: https://wheelofnames.stoplight.io/ The idea is that after spinning the roulette that's the time the name will be shown and players can start voting. Use the functionality of removing the game on the list."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Draw and vote on a game (Priority: P1)
 
@@ -48,7 +50,7 @@ The game master uses the roulette's removal behavior so a game that has been dra
 - Players reconnect during a spin or an open ballot. They see the same current round state and selected game as the game master; they cannot vote before the result is revealed.
 - A later round includes a game that was selected in an earlier round, if that game advanced under the existing Go Force rules. Removal applies to the current round only.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -63,14 +65,14 @@ The game master uses the roulette's removal behavior so a game that has been dra
 - **FR-009**: If a spin fails, produces no result, or produces a game outside the active round's remaining list, the system MUST leave the active list and voting state unchanged and allow the game master to retry or recover without recording a selection.
 - **FR-010**: The system MUST retain each successful draw and its associated votes in the session's history, even after the title is removed from the active round list.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Active Round Roulette**: The remaining eligible games available for selection in one Go Force round.
 - **Game Draw**: A successfully completed spin that identifies one game for the active round and its ballot.
 - **Game Vote**: A player's existing `go` or `no-go` response associated with the revealed game and active round.
 - **Annual Eligible-Game List**: The administrator-maintained source list, which is distinct from the active round's remaining roulette entries.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
