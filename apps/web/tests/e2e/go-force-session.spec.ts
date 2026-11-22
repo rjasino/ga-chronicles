@@ -18,6 +18,7 @@ async function drawAndVote(
   await spinButton.click();
   await expect(spinButton).toBeDisabled();
   await expect(facilitator.getByText(/Waiting for the Wheel of Names animation/i)).toBeVisible();
+  await expect(facilitator.getByText("Selection result")).toBeHidden();
   await player.reload();
   await expect(player.getByText("Now voting")).not.toBeVisible();
   await expect(facilitator.getByText("Voting open")).toBeVisible();

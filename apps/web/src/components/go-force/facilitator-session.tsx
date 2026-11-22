@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useActionState, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { GoForceLiveRefresh } from "@/components/go-force/live-refresh";
 import { GameDetailsCard } from "@/components/go-force/game-details-card";
 import { RouletteReveal } from "@/components/go-force/roulette-reveal";
@@ -48,7 +48,15 @@ function StartSessionForm({ sessionId }: { sessionId: string }) {
   );
 }
 
-function DrawForm({ sessionId, disabled }: { sessionId: string; disabled: boolean }) {
+function DrawForm({
+  sessionId,
+  disabled,
+  onDrawStateChange,
+}: {
+  sessionId: string;
+  disabled: boolean;
+  onDrawStateChange: (active: boolean) => void;
+}) {
   const [state, action, pending] = useActionState(
     drawGoForceSelection,
     {} satisfies GameActionState,
@@ -56,6 +64,10 @@ function DrawForm({ sessionId, disabled }: { sessionId: string; disabled: boolea
   const [commitPending, setCommitPending] = useState(false);
   const [commitError, setCommitError] = useState<string>();
   const commitStarted = useRef(false);
+
+  useEffect(() => {
+    if (!pending && state.error) onDrawStateChange(false);
+  }, [onDrawStateChange, pending, state.error]);
 
   const openVoting = () => {
     if (!state.gameId || commitStarted.current) return;
@@ -81,7 +93,10 @@ function DrawForm({ sessionId, disabled }: { sessionId: string; disabled: boolea
           animation={state.animation}
           animationFormat={state.animationFormat}
           animationDurationMs={state.animationDurationMs}
-          onAnimationComplete={openVoting}
+          onAnimationComplete={() => {
+            onDrawStateChange(false);
+            openVoting();
+          }}
         />
         {commitPending && (
           <p className="m-0 text-center text-muted" role="status">
@@ -101,7 +116,11 @@ function DrawForm({ sessionId, disabled }: { sessionId: string; disabled: boolea
   }
 
   return (
-    <form className="form-stack" action={action}>
+    <form
+      className="form-stack"
+      action={action}
+      onSubmit={() => onDrawStateChange(true)}
+    >
       <input type="hidden" name="sessionId" value={sessionId} />
       {state.error && <RouletteReveal status="error" error={state.error} />}
       {pending && <RouletteReveal status="pending" />}
@@ -223,6 +242,7 @@ function RoundThreeGoStatus({ data }: { data: FacilitatorSessionView }) {
 }
 
 export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
+  const [drawInProgress, setDrawInProgress] = useState(false);
   const {
     session,
     participants,
@@ -308,10 +328,14 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
               <CloseSelectionForm sessionId={session.id} selectionId={currentSelection.id} />
             </div>
           ) : (
-            <DrawForm sessionId={session.id} disabled={remainingGames.length === 0} />
+            <DrawForm
+              sessionId={session.id}
+              disabled={remainingGames.length === 0}
+              onDrawStateChange={setDrawInProgress}
+            />
           )}
 
-          {closingSelection && (
+          {closingSelection && !drawInProgress && (
             <VoteBreakdown selection={closingSelection} participants={activeParticipants} />
           )}
           <RoundThreeGoStatus data={data} />
