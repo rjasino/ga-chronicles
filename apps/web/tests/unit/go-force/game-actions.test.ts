@@ -32,7 +32,7 @@ vi.mock("@/features/go-force/wheel-of-names-client", () => ({
   },
 }));
 
-import { drawGoForceSelection } from "@/features/go-force/game-actions";
+import { commitGoForceSelection, drawGoForceSelection } from "@/features/go-force/game-actions";
 
 const sessionId = "40000000-0000-4000-8000-000000000001";
 const gameId = "60000000-0000-4000-8000-000000000001";
@@ -80,22 +80,35 @@ describe("drawGoForceSelection", () => {
     expect(actions.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("commits the validated provider winner before publishing the result", async () => {
+  it("returns the validated provider winner and animation without committing or publishing", async () => {
     actions.spinWheelOfNames.mockResolvedValue({
       animation,
       animationFormat: "webp",
       winner: { id: gameId, text: "Game One" },
     });
+    await expect(drawGoForceSelection({}, drawForm())).resolves.toEqual({
+      gameId,
+      title: "Game One",
+      animation,
+      animationFormat: "webp",
+      animationDurationMs: 0,
+    });
+
+    expect(actions.createClient).not.toHaveBeenCalled();
+    expect(actions.rpc).not.toHaveBeenCalled();
+    expect(actions.publishGoForceSessionUpdate).not.toHaveBeenCalled();
+  });
+
+  it("commits a still-eligible winner only when the facilitator opens voting", async () => {
     actions.rpc.mockResolvedValue({
       data: { selectionId: "selection-id", title: "Game One" },
       error: null,
     });
 
-    await expect(drawGoForceSelection({}, drawForm())).resolves.toEqual({
+    await expect(commitGoForceSelection(sessionId, gameId)).resolves.toEqual({
       selectionId: "selection-id",
+      gameId,
       title: "Game One",
-      animation,
-      animationFormat: "webp",
       success: "Game One is up for a vote.",
     });
 
@@ -105,5 +118,20 @@ describe("drawGoForceSelection", () => {
     });
     expect(actions.publishGoForceSessionUpdate).toHaveBeenCalledWith(sessionId);
     expect(actions.revalidatePath).toHaveBeenCalledWith(`/admin/go-force/sessions/${sessionId}`);
+  });
+
+  it("does not commit a candidate that is no longer in the active round pool", async () => {
+    actions.getFacilitatorSessionView.mockResolvedValue({
+      session: { game_master_id: "facilitator-id", status: "live" },
+      currentRound: { id: "round-id", round_number: 1 },
+      currentSelection: null,
+      remainingGames: [],
+    });
+
+    await expect(commitGoForceSelection(sessionId, gameId)).resolves.toEqual({
+      error: "The selected game is no longer eligible. Please spin again.",
+    });
+    expect(actions.rpc).not.toHaveBeenCalled();
+    expect(actions.publishGoForceSessionUpdate).not.toHaveBeenCalled();
   });
 });

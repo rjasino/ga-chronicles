@@ -8,15 +8,19 @@ async function signInAdmin(page: Page) {
   await expect(page).toHaveURL(/\/$/);
 }
 
-async function drawAndVote(facilitator: Page, player: Page, choice: "Go" | "No-go", assertReveal = false) {
+async function drawAndVote(
+  facilitator: Page,
+  player: Page,
+  choice: "Go" | "No-go",
+  assertReveal = false,
+) {
   const spinButton = facilitator.getByRole("button", { name: "Spin the roulette" });
   await spinButton.click();
   await expect(spinButton).toBeDisabled();
-  await expect(facilitator.getByText(/Wheel of Names spin in progress/i)).toBeVisible();
+  await expect(facilitator.getByText(/Waiting for the Wheel of Names animation/i)).toBeVisible();
   await player.reload();
   await expect(player.getByText("Now voting")).not.toBeVisible();
   await expect(facilitator.getByText("Voting open")).toBeVisible();
-  await expect(facilitator.getByText("Animated reveal of the server-selected game.")).toBeVisible();
   const title = (await facilitator.locator("section h3").first().innerText()).trim();
 
   await player.reload();
@@ -35,11 +39,14 @@ async function drawAndVote(facilitator: Page, player: Page, choice: "Go" | "No-g
   return title;
 }
 
-test("a fixed roster completes three rounds, reveals votes only after close, and produces a GOTY winner", async ({ page }) => {
+test("a fixed roster completes three rounds, reveals votes only after close, and produces a GOTY winner", async ({
+  page,
+}) => {
   test.setTimeout(180_000);
   await page.request.delete("http://127.0.0.1:3201/requests");
   await signInAdmin(page);
   await page.goto("/admin/go-force");
+  await page.getByRole("tab", { name: "Annual games" }).click();
   const gotyYear = 2030 + (Date.now() % 60);
   const runId = Date.now();
   const fixtureTitles = Array.from(
@@ -49,10 +56,14 @@ test("a fixed roster completes three rounds, reveals votes only after close, and
   for (const [index, title] of fixtureTitles.entries()) {
     await page.getByLabel("Game title").first().fill(title);
     await page.getByLabel("GOTY year").first().fill(String(gotyYear));
-    await page.getByLabel("Display order").first().fill(String(index + 1));
+    await page
+      .getByLabel("Display order")
+      .first()
+      .fill(String(index + 1));
     await page.getByRole("button", { name: "Add game" }).click();
-    await expect(page.locator(`input[value="${title}"]`)).toBeVisible();
+    await expect(page.getByRole("row").filter({ hasText: title })).toBeVisible();
   }
+  await page.getByRole("tab", { name: "Sessions" }).click();
   await page.getByLabel("GOTY year").last().fill(String(gotyYear));
   await page.getByLabel(/Local Admin \(localadmin\)/).check();
   await page.getByRole("button", { name: "Create ready session" }).click();
@@ -76,7 +87,9 @@ test("a fixed roster completes three rounds, reveals votes only after close, and
   await expect(player.getByText(/vote stays hidden/i)).not.toBeVisible();
   roundOneTitles.push(await drawAndVote(page, player, "Go"));
   const afterSecondSpin = await page.request.get("http://127.0.0.1:3201/requests");
-  const secondSpinEntries = (await afterSecondSpin.json())[1].wheelConfig.entries as { text: string }[];
+  const secondSpinEntries = (await afterSecondSpin.json())[1].wheelConfig.entries as {
+    text: string;
+  }[];
   expect(secondSpinEntries.map(({ text }) => text)).not.toContain(roundOneTitles[0]);
   roundOneTitles.push(await drawAndVote(page, player, "Go"));
   roundOneTitles.push(await drawAndVote(page, player, "No-go"));
@@ -86,8 +99,11 @@ test("a fixed roster completes three rounds, reveals votes only after close, and
   await drawAndVote(page, player, "Go");
   const afterFirstRoundTwoSpin = await page.request.get("http://127.0.0.1:3201/requests");
   const requestsAfterFirstRoundTwoSpin = await afterFirstRoundTwoSpin.json();
-  expect(requestsAfterFirstRoundTwoSpin[4].wheelConfig.entries.map((entry: { text: string }) => entry.text))
-    .toEqual(roundOneTitles.slice(0, 3));
+  expect(
+    requestsAfterFirstRoundTwoSpin[4].wheelConfig.entries.map(
+      (entry: { text: string }) => entry.text,
+    ),
+  ).toEqual(roundOneTitles.slice(0, 3));
   await drawAndVote(page, player, "Go");
   await drawAndVote(page, player, "No-go");
   await expect(page.getByText("Round 3 of 3")).toBeVisible();
@@ -107,9 +123,12 @@ test("a fixed roster completes three rounds, reveals votes only after close, and
   await page.getByRole("button", { name: "Close final ballot" }).click();
   await expect(page.getByText(/Vote completion: 100%/)).toBeVisible();
   await expect(page.getByRole("heading", { name: finalist })).toBeVisible();
-  await expect(page.getByText("The results page is hidden until an admin publishes it.")).toBeVisible();
+  await expect(
+    page.getByText("The results page is hidden until an admin publishes it."),
+  ).toBeVisible();
   await page.goto("/admin/go-force");
-  await expect(page.locator(`input[value="${roundOneTitles[0]}"]`)).toBeVisible();
+  await page.getByRole("tab", { name: "Annual games" }).click();
+  await expect(page.getByRole("row").filter({ hasText: roundOneTitles[0] })).toBeVisible();
 
   await player.close();
   expect(finalist.length).toBeGreaterThan(0);

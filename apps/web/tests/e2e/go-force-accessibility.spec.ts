@@ -3,7 +3,9 @@ import { expect, test } from "@playwright/test";
 
 const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
-test("player and facilitator screens are responsive, keyboard reachable, and axe-clean", async ({ page }) => {
+test("player and facilitator screens are responsive, keyboard reachable, and axe-clean", async ({
+  page,
+}) => {
   test.setTimeout(120_000);
   await page.goto("/sign-in");
   await page.getByLabel("Username").fill("localadmin");
@@ -12,6 +14,7 @@ test("player and facilitator screens are responsive, keyboard reachable, and axe
   await expect(page).toHaveURL(/\/$/);
 
   await page.goto("/admin/go-force");
+  await page.getByRole("tab", { name: "Sessions" }).click();
   await page.getByLabel("GOTY year").last().fill("2029");
   await page.getByLabel(/Local Admin \(localadmin\)/).check();
   await page.getByRole("button", { name: "Create ready session" }).click();

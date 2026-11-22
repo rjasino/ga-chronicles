@@ -92,7 +92,7 @@ describe("Wheel of Names client", () => {
     await expect(spinWheelOfNames(entries)).rejects.toThrow(/winner title did not match/i);
   });
 
-  it("rejects malformed animation responses", async () => {
+  it("keeps a validated winner when the animation is malformed", async () => {
     vi.stubEnv("WHEEL_OF_NAMES_API_KEY", "wheel-test-key");
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -109,7 +109,12 @@ describe("Wheel of Names client", () => {
       ),
     );
 
-    await expect(spinWheelOfNames(entries)).rejects.toThrow(/invalid animation/i);
+    const result = await spinWheelOfNames(entries);
+    expect(result).toMatchObject({
+      winner: entries[0],
+      animationFormat: "webp",
+    });
+    expect(result).not.toHaveProperty("animation");
   });
 
   it("validates a multi-megabyte animation without overflowing the stack", async () => {
@@ -135,7 +140,7 @@ describe("Wheel of Names client", () => {
     });
   });
 
-  it("rejects a malformed multi-megabyte animation without overflowing the stack", async () => {
+  it("continues without a malformed multi-megabyte animation", async () => {
     vi.stubEnv("WHEEL_OF_NAMES_API_KEY", "wheel-test-key");
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -153,10 +158,12 @@ describe("Wheel of Names client", () => {
       ),
     );
 
-    await expect(spinWheelOfNames(entries)).rejects.toThrow(/invalid animation/i);
+    const result = await spinWheelOfNames(entries);
+    expect(result).toMatchObject({ winner: entries[0] });
+    expect(result).not.toHaveProperty("animation");
   });
 
-  it("rejects animations larger than the configured size limit", async () => {
+  it("continues without animations larger than the configured size limit", async () => {
     vi.stubEnv("WHEEL_OF_NAMES_API_KEY", "wheel-test-key");
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -174,7 +181,9 @@ describe("Wheel of Names client", () => {
       ),
     );
 
-    await expect(spinWheelOfNames(entries)).rejects.toThrow(/too large to display/i);
+    const result = await spinWheelOfNames(entries);
+    expect(result).toMatchObject({ winner: entries[0] });
+    expect(result).not.toHaveProperty("animation");
   });
 
   it("turns provider errors into a recoverable message", async () => {

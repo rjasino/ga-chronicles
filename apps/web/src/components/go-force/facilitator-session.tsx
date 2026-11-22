@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { startTransition, useActionState, useRef, useState } from "react";
 import { GoForceLiveRefresh } from "@/components/go-force/live-refresh";
 import { GameDetailsCard } from "@/components/go-force/game-details-card";
 import { RouletteReveal } from "@/components/go-force/roulette-reveal";
@@ -9,6 +9,7 @@ import { VotingCountdown } from "@/components/go-force/voting-countdown";
 import { Button } from "@/components/ui/button";
 import { Message } from "@/components/ui/message";
 import {
+  commitGoForceSelection,
   closeGoForceSelection,
   drawGoForceSelection,
   type GameActionState,
@@ -47,19 +48,58 @@ function StartSessionForm({ sessionId }: { sessionId: string }) {
   );
 }
 
-function DrawForm({
-  sessionId,
-  disabled,
-  state,
-  action,
-  pending,
-}: {
-  sessionId: string;
-  disabled: boolean;
-  state: GameActionState;
-  action: (formData: FormData) => void;
-  pending: boolean;
-}) {
+function DrawForm({ sessionId, disabled }: { sessionId: string; disabled: boolean }) {
+  const [state, action, pending] = useActionState(
+    drawGoForceSelection,
+    {} satisfies GameActionState,
+  );
+  const [commitPending, setCommitPending] = useState(false);
+  const [commitError, setCommitError] = useState<string>();
+  const commitStarted = useRef(false);
+
+  const openVoting = () => {
+    if (!state.gameId || commitStarted.current) return;
+    commitStarted.current = true;
+    setCommitPending(true);
+    setCommitError(undefined);
+    startTransition(async () => {
+      const result = await commitGoForceSelection(sessionId, state.gameId!);
+      setCommitPending(false);
+      if (result.error) {
+        commitStarted.current = false;
+        setCommitError(result.error);
+      }
+    });
+  };
+
+  if (state.gameId) {
+    return (
+      <div className="grid gap-3" aria-label="Prepared roulette selection">
+        <RouletteReveal
+          key={state.gameId}
+          status="spinning"
+          animation={state.animation}
+          animationFormat={state.animationFormat}
+          animationDurationMs={state.animationDurationMs}
+          onAnimationComplete={openVoting}
+        />
+        {commitPending && (
+          <p className="m-0 text-center text-muted" role="status">
+            Spin complete. Opening voting…
+          </p>
+        )}
+        {commitError && (
+          <div className="grid justify-items-center gap-2">
+            <Message tone="error">{commitError}</Message>
+            <Button purpose="secondary" type="button" onClick={openVoting}>
+              Retry opening voting
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <form className="form-stack" action={action}>
       <input type="hidden" name="sessionId" value={sessionId} />
@@ -112,7 +152,7 @@ function CloseBallotForm({ sessionId }: { sessionId: string }) {
   );
 }
 
-function VoteBreakdown({
+export function VoteBreakdown({
   selection,
   participants,
 }: {
@@ -126,9 +166,13 @@ function VoteBreakdown({
       <p className="article-type m-0 mb-1 text-[.75rem] font-bold tracking-[.06em] text-red uppercase">
         Selection result
       </p>
-      <h3 className="m-0 font-display text-[1.5rem] text-blue">
-        {selection.game?.title_snapshot ?? "Selected game"}
-      </h3>
+      <GameDetailsCard
+        title={selection.game?.title_snapshot ?? "Selected game"}
+        developer={selection.game?.developer_snapshot}
+        publisher={selection.game?.publisher_snapshot}
+        genre={selection.game?.genre_snapshot}
+        coverArtUrl={selection.game?.cover_art_url_snapshot}
+      />
       <p className="mt-2">
         <strong>{selection.advancement_outcome === "advanced" ? "Advances" : "Eliminated"}</strong>
         {" · "}
@@ -179,10 +223,6 @@ function RoundThreeGoStatus({ data }: { data: FacilitatorSessionView }) {
 }
 
 export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
-  const [drawState, drawAction, drawPending] = useActionState(
-    drawGoForceSelection,
-    {} satisfies GameActionState,
-  );
   const {
     session,
     participants,
@@ -242,14 +282,6 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
                 <RouletteReveal
                   key={currentSelection.id}
                   title={currentSelection.game?.title_snapshot ?? "Selected game"}
-                  animation={
-                    drawState.selectionId === currentSelection.id ? drawState.animation : undefined
-                  }
-                  animationFormat={
-                    drawState.selectionId === currentSelection.id
-                      ? drawState.animationFormat
-                      : undefined
-                  }
                 />
                 <GameDetailsCard
                   title={currentSelection.game?.title_snapshot ?? "Selected game"}
@@ -276,13 +308,7 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
               <CloseSelectionForm sessionId={session.id} selectionId={currentSelection.id} />
             </div>
           ) : (
-            <DrawForm
-              sessionId={session.id}
-              disabled={remainingGames.length === 0}
-              state={drawState}
-              action={drawAction}
-              pending={drawPending}
-            />
+            <DrawForm sessionId={session.id} disabled={remainingGames.length === 0} />
           )}
 
           {closingSelection && (

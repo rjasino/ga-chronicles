@@ -2,7 +2,10 @@ import { expect, test } from "@playwright/test";
 
 const completedSessionId = "60000000-0000-4000-8000-000000000001";
 
-test("results stay hidden or incomplete until a completed session is published", async ({ page, browser }) => {
+test("results stay hidden or incomplete until a completed session is published", async ({
+  page,
+  browser,
+}) => {
   test.setTimeout(90_000);
   await page.goto("/sign-in");
   await page.getByLabel("Username").fill("localadmin");
@@ -14,6 +17,7 @@ test("results stay hidden or incomplete until a completed session is published",
   const viewer = await anonymous.newPage();
 
   await page.goto("/admin/go-force");
+  await page.getByRole("tab", { name: "Sessions" }).click();
   const completedRow = page.locator("li").filter({ hasText: "GOTY 2025" });
   await expect(completedRow.getByText(/complete/)).toBeVisible();
   const resultVisibility = completedRow.getByLabel("Public results page");
@@ -39,6 +43,7 @@ test("results stay hidden or incomplete until a completed session is published",
 
   // An unfinished session never presents a public result page.
   await page.goto("/admin/go-force");
+  await page.getByRole("tab", { name: "Sessions" }).click();
   await page.getByLabel("GOTY year").last().fill("2028");
   await page.getByLabel(/Local Admin \(localadmin\)/).check();
   await page.getByRole("button", { name: "Create ready session" }).click();

@@ -8,14 +8,17 @@ import { goForceErrorMessage } from "@/features/go-force/messages";
 import { publishGoForceSessionUpdate } from "@/features/go-force/realtime-broadcast";
 import { parseGameVoteForm } from "@/features/go-force/schemas";
 import { spinWheelOfNames, WheelOfNamesError } from "@/features/go-force/wheel-of-names-client";
+import { wheelAnimationDurationMs } from "@/features/go-force/wheel-animation";
 
 export type GameActionState = {
   error?: string;
   success?: string;
   selectionId?: string;
+  gameId?: string;
   title?: string;
   animation?: string;
   animationFormat?: "gif" | "webp";
+  animationDurationMs?: number;
 };
 
 function revalidateSession(sessionId: string) {
@@ -75,17 +78,84 @@ export async function drawGoForceSelection(
     };
   }
 
+  return {
+    gameId: spin.winner.id,
+    title: spin.winner.text,
+    ...(spin.animation ? { animation: spin.animation } : {}),
+    animationFormat: spin.animationFormat,
+    animationDurationMs: spin.animation
+      ? wheelAnimationDurationMs(spin.animation, spin.animationFormat)
+      : 0,
+  };
+}
+
+export async function commitGoForceSelection(
+  sessionId: string,
+  gameId: string,
+): Promise<GameActionState> {
+  const session = await getVerifiedSession();
+  if (!session) return { error: "Sign in to open voting." };
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(sessionId) || !uuidPattern.test(gameId)) {
+    return { error: "Choose a valid Go Force selection." };
+  }
+
+  let view;
+  try {
+    view = await getFacilitatorSessionView(sessionId);
+  } catch {
+    return { error: "The Go Force session could not be loaded. Please retry." };
+  }
+  if (!view) return { error: "That Go Force session could not be found." };
+  if (view.session.game_master_id !== session.userId && !session.roles.includes("admin")) {
+    return { error: "Only the game master or an admin can open voting." };
+  }
+
+  if (view.currentSelection) {
+    if (view.currentSelection.session_game_id === gameId) {
+      return {
+        selectionId: view.currentSelection.id,
+        gameId,
+        title: view.currentSelection.game?.title_snapshot ?? "Selected game",
+        success: "Voting is open.",
+      };
+    }
+    return { error: "Another game selection is already open." };
+  }
+  if (view.session.status !== "live" || !view.currentRound) {
+    return { error: "This session does not have an active round." };
+  }
+  if (!view.remainingGames.some((game) => game.id === gameId)) {
+    return { error: "The selected game is no longer eligible. Please spin again." };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("go_force_commit_selection", {
     target_session: sessionId,
-    target_game: spin.winner.id,
+    target_game: gameId,
   });
-  if (error)
+  if (error) {
+    // A pagehide callback and the animation-complete callback may race. If the
+    // other request already committed this same candidate, treat it as success.
+    try {
+      const latestView = await getFacilitatorSessionView(sessionId);
+      if (latestView?.currentSelection?.session_game_id === gameId) {
+        return {
+          selectionId: latestView.currentSelection.id,
+          gameId,
+          title: latestView.currentSelection.game?.title_snapshot ?? "Selected game",
+          success: "Voting is open.",
+        };
+      }
+    } catch {
+      // Preserve the original database error as the user-facing result.
+    }
     return { error: goForceErrorMessage(error, "The game could not be committed. Please retry.") };
+  }
 
   const selectionId = typeof data?.selectionId === "string" ? data.selectionId : undefined;
   const title = typeof data?.title === "string" ? data.title : undefined;
-  if (!selectionId || title !== spin.winner.text) {
+  if (!selectionId || !title) {
     return { error: "The selected game could not be confirmed. Please refresh the session." };
   }
 
@@ -93,9 +163,8 @@ export async function drawGoForceSelection(
   revalidateSession(sessionId);
   return {
     selectionId,
+    gameId,
     title,
-    animation: spin.animation,
-    animationFormat: spin.animationFormat,
     success: `${title} is up for a vote.`,
   };
 }

@@ -70,6 +70,7 @@ test("admins control Go Force visibility and maintain the annual list without re
   await page.goto("/admin/go-force");
   await expect(page.getByLabel("Show the public Go Force page")).toBeChecked();
 
+  await page.getByRole("tab", { name: "Annual games" }).click();
   const title = `E2E GOTY Game ${Date.now()}`;
   await page.getByLabel("Game title").first().fill(title);
   await page.getByLabel("GOTY year").first().fill("2027");
@@ -80,22 +81,20 @@ test("admins control Go Force visibility and maintain the annual list without re
   await page.getByLabel("Genre (optional)").first().fill("Action");
   await page.getByRole("button", { name: "Add game" }).click();
   await expect(page.getByText("Game added.")).toBeVisible();
-  await expect(page.locator(`input[value="${title}"]`)).toBeVisible();
+  const addedRow = page.locator("tr[data-game-id]").filter({ hasText: title });
+  await expect(addedRow).toBeVisible();
+  const gameId = await addedRow.getAttribute("data-game-id");
+  const row = page.locator(`tr[data-game-id="${gameId}"]`);
 
-  const addedRow = page.locator("li").filter({ has: page.locator(`input[value="${title}"]`) });
-  const gameId = await addedRow.locator('input[name="id"]').inputValue();
-  const row = page
-    .locator("li")
-    .filter({ has: page.locator(`input[name="id"][value="${gameId}"]`) });
+  await row.getByRole("button", { name: "Edit" }).click();
   const editedTitle = `${title} edited`;
   await row.getByLabel("Cover art URL (optional)").fill("https://example.test/game-cover.webp");
   await row.getByLabel("Game title").fill(editedTitle);
-  await row.getByRole("button", { name: "Save" }).click();
+  await row.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Game updated.")).toBeVisible();
-  await expect(page.locator(`input[value="${editedTitle}"]`)).toBeVisible();
-  const editedRow = page
-    .locator("li")
-    .filter({ has: page.locator(`input[value="${editedTitle}"]`) });
+  const editedRow = page.locator(`tr[data-game-id="${gameId}"]`);
+  await expect(editedRow).toContainText(editedTitle);
+  await editedRow.getByRole("button", { name: "Edit" }).click();
   await expect(editedRow.getByLabel("Developer (optional)")).toHaveValue("Test Studio");
   await expect(editedRow.getByLabel("Publisher (optional)")).toHaveValue("Test Publisher");
   await expect(editedRow.getByLabel("Genre (optional)")).toHaveValue("Action");
@@ -106,13 +105,15 @@ test("admins control Go Force visibility and maintain the annual list without re
   await editedRow
     .getByLabel("Upload cover art (optional)")
     .setInputFiles(path.resolve(process.cwd(), "../../docs/neon_ga_logo_2.png"));
-  await editedRow.getByRole("button", { name: "Save" }).click();
+  await editedRow.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Game updated.")).toBeVisible();
+  await editedRow.getByRole("button", { name: "Edit" }).click();
   await expect(editedRow.getByLabel("Cover art URL (optional)")).toHaveValue(
     /\/storage\/v1\/object\/public\/go-force-covers\//,
   );
-  await editedRow.getByRole("button", { name: "Remove" }).click();
-  await expect(page.locator(`input[value="${editedTitle}"]`)).toBeHidden();
+  await editedRow.getByRole("button", { name: "Cancel" }).click();
+  await editedRow.getByRole("button", { name: "Delete" }).click();
+  await expect(editedRow).toBeHidden();
 
   await page.goto("/go-force");
   await expect(page.getByRole("heading", { name: "Go Force", level: 1 })).toBeVisible();
@@ -140,6 +141,7 @@ test("annual-game Server Action forms keep uploads and avoid React encoding warn
   await page.goto("/admin/go-force");
   expect(reactFormWarnings).toEqual([]);
 
+  await page.getByRole("tab", { name: "Annual games" }).click();
   const runId = Date.now();
   const title = `Wheel form upload ${runId}`;
   await page.getByLabel("Game title").first().fill(title);
@@ -151,18 +153,23 @@ test("annual-game Server Action forms keep uploads and avoid React encoding warn
   await page.getByRole("button", { name: "Add game" }).click();
   await expect(page.getByText("Game added.")).toBeVisible();
 
-  const row = page.locator("li").filter({ has: page.locator(`input[value="${title}"]`) });
+  const addedRow = page.locator("tr[data-game-id]").filter({ hasText: title });
+  const gameId = await addedRow.getAttribute("data-game-id");
+  const row = page.locator(`tr[data-game-id="${gameId}"]`);
+  await row.getByRole("button", { name: "Edit" }).click();
   await row
     .getByLabel("Upload cover art (optional)")
     .setInputFiles(path.resolve(process.cwd(), "../../docs/neon_ga_logo_2.png"));
-  await row.getByRole("button", { name: "Save" }).click();
+  await row.getByRole("button", { name: "Save changes" }).click();
+  await row.getByRole("button", { name: "Edit" }).click();
   await expect(row.getByLabel("Cover art URL (optional)")).toHaveValue(
     /\/storage\/v1\/object\/public\/go-force-covers\//,
   );
   await expect(page.getByText("Game updated.")).toBeVisible();
 
-  await row.getByRole("button", { name: "Remove" }).click();
-  await expect(page.locator(`input[value="${title}"]`)).toBeHidden();
+  await row.getByRole("button", { name: "Cancel" }).click();
+  await row.getByRole("button", { name: "Delete" }).click();
+  await expect(row).toBeHidden();
   expect(reactFormWarnings).toEqual([]);
 });
 
@@ -195,6 +202,7 @@ test("Go Force navigation is visible to admins always and rostered players only 
   await expect(player).toHaveURL(/\/$/);
   await expect(player.getByRole("link", { name: "Go Force", exact: true })).toHaveCount(0);
 
+  await page.getByRole("tab", { name: "Sessions" }).click();
   const gotyYear = 2000 + (Date.now() % 101);
   await page.getByLabel("GOTY year").last().fill(String(gotyYear));
   await page.getByLabel(/Local Reader \(localreader\)/).check();
@@ -204,6 +212,7 @@ test("Go Force navigation is visible to admins always and rostered players only 
   await player.reload();
   await expect(player.getByRole("link", { name: "Go Force", exact: true })).toBeVisible();
 
+  await page.getByRole("tab", { name: "Page & timers" }).click();
   await visibility.uncheck();
   await page.getByRole("button", { name: "Save visibility" }).click();
   await expect(page.getByText("The Go Force page is hidden.")).toBeVisible();
@@ -211,8 +220,10 @@ test("Go Force navigation is visible to admins always and rostered players only 
   await player.reload();
   await expect(player.getByRole("link", { name: "Go Force", exact: true })).toHaveCount(0);
 
+  await page.getByRole("tab", { name: "Sessions" }).click();
   const readySession = page.locator("li").filter({ hasText: `GOTY ${gotyYear}` });
   await readySession.getByRole("button", { name: "Remove ready session" }).click();
+  await page.getByRole("tab", { name: "Page & timers" }).click();
   await visibility.check();
   await page.getByRole("button", { name: "Save visibility" }).click();
   await player.reload();

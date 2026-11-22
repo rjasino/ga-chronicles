@@ -11,7 +11,7 @@ export type WheelOfNamesEntry = {
 export type WheelOfNamesAnimationFormat = "gif" | "webp";
 
 export type WheelOfNamesSpinResult = {
-  animation: string;
+  animation?: string;
   animationFormat: WheelOfNamesAnimationFormat;
   winner: WheelOfNamesEntry;
 };
@@ -27,7 +27,7 @@ const REQUESTED_IMAGE_FORMAT = "webp" as const;
 const MAX_ANIMATION_BASE64_LENGTH = 12 * 1024 * 1024;
 
 const spinResponseSchema = z.object({
-  animation: z.string().min(4),
+  animation: z.unknown().optional(),
   winner: z.object({
     id: z.string().min(1),
     text: z.string().min(1),
@@ -199,28 +199,6 @@ export async function spinWheelOfNames(
     );
   }
 
-  if (parsed.data.animation.length > MAX_ANIMATION_BASE64_LENGTH) {
-    console.warn("[Wheel of Names] animation exceeds size limit", {
-      requestId,
-      animationLength: parsed.data.animation.length,
-      maxLength: MAX_ANIMATION_BASE64_LENGTH,
-    });
-    throw new WheelOfNamesError(
-      "Wheel of Names returned an animation that is too large to display. Please contact an admin.",
-      requestId,
-    );
-  }
-  if (!isBase64Animation(parsed.data.animation)) {
-    console.warn("[Wheel of Names] animation is not valid base64", {
-      requestId,
-      animationLength: parsed.data.animation.length,
-    });
-    throw new WheelOfNamesError(
-      "Wheel of Names returned an invalid animation. Please retry.",
-      requestId,
-    );
-  }
-
   const winningEntry = entries.find(({ id }) => id === parsed.data.winner.id);
   if (!winningEntry) {
     throw new WheelOfNamesError(
@@ -235,8 +213,29 @@ export async function spinWheelOfNames(
     );
   }
 
+  const animationData = parsed.data.animation;
+  let animation: string | undefined;
+  if (typeof animationData === "string" && animationData.length > MAX_ANIMATION_BASE64_LENGTH) {
+    console.warn("[Wheel of Names] animation exceeds size limit; continuing without animation", {
+      requestId,
+      animationLength: animationData.length,
+      maxLength: MAX_ANIMATION_BASE64_LENGTH,
+    });
+  } else if (typeof animationData === "string" && isBase64Animation(animationData)) {
+    animation = animationData;
+  } else {
+    console.warn(
+      "[Wheel of Names] animation is unavailable or invalid; continuing without animation",
+      {
+        requestId,
+        animationLength: typeof animationData === "string" ? animationData.length : null,
+      },
+    );
+  }
+
   return {
-    ...parsed.data,
+    ...(animation ? { animation } : {}),
     animationFormat: REQUESTED_IMAGE_FORMAT,
+    winner: winningEntry,
   };
 }

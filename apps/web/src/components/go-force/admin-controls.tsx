@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Message } from "@/components/ui/message";
@@ -94,97 +94,154 @@ function VotingSettingsForm({
   );
 }
 
-function AnnualGameRow({ game }: { game: AnnualGame }) {
+function AnnualGameEditForm({
+  game,
+  onSaved,
+  onCancel,
+}: {
+  game: AnnualGame;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
   const [state, action, pending] = useActionState(saveAnnualGame, {} satisfies AdminActionState);
+  useEffect(() => {
+    if (state.success) onSaved();
+  }, [onSaved, state.success]);
+  return (
+    <form className="grid gap-3 border border-line bg-paper p-4" action={action}>
+      <input type="hidden" name="id" value={game.id} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <TextField
+          label="Game title"
+          name="title"
+          defaultValue={game.title}
+          required
+          maxLength={200}
+        />
+        <TextField
+          label="Year"
+          name="gotyYear"
+          type="number"
+          min={2000}
+          max={2100}
+          defaultValue={game.goty_year}
+          required
+        />
+        <Select label="Eligibility" name="eligibilityState" defaultValue={game.eligibility_state}>
+          <option value="eligible">Eligible</option>
+          <option value="ineligible">Ineligible</option>
+        </Select>
+        <TextField
+          label="Order"
+          name="displayOrder"
+          type="number"
+          min={0}
+          defaultValue={game.display_order}
+        />
+        <TextField
+          label="Developer (optional)"
+          name="developer"
+          defaultValue={game.developer ?? ""}
+          maxLength={160}
+        />
+        <TextField
+          label="Publisher (optional)"
+          name="publisher"
+          defaultValue={game.publisher ?? ""}
+          maxLength={160}
+        />
+        <TextField
+          label="Genre (optional)"
+          name="genre"
+          defaultValue={game.genre ?? ""}
+          maxLength={120}
+        />
+        <TextField
+          label="Cover art URL (optional)"
+          name="coverArtUrl"
+          type="url"
+          defaultValue={game.cover_art_url ?? ""}
+          maxLength={2048}
+        />
+        <TextField
+          label="Upload cover art (optional)"
+          name="coverArtFile"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="file:mr-3 file:border-0 file:bg-blue file:px-3 file:py-2 file:font-semibold file:text-white"
+          hint="JPEG, PNG, or WebP up to 10 MiB. An uploaded image replaces the URL."
+        />
+      </div>
+      {state.error && <Message tone="error">{state.error}</Message>}
+      {state.success && <Message tone="success">{state.success}</Message>}
+      <div className="flex flex-wrap gap-2">
+        <Button purpose="primary" pending={pending}>
+          Save changes
+        </Button>
+        <Button purpose="secondary" type="button" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function AnnualGameRow({ game }: { game: AnnualGame }) {
+  const [editing, setEditing] = useState(false);
+  const [updated, setUpdated] = useState(false);
   const [removeState, removeAction, removePending] = useActionState(
     removeAnnualGame,
     {} satisfies AdminActionState,
   );
+  if (editing) {
+    return (
+      <tr data-game-id={game.id}>
+        <td colSpan={5} className="p-3">
+          <AnnualGameEditForm
+            game={game}
+            onSaved={() => {
+              setEditing(false);
+              setUpdated(true);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        </td>
+      </tr>
+    );
+  }
+
   return (
-    <li className="grid gap-3 border-b border-line py-4">
-      <form className="grid gap-3" action={action}>
-        <input type="hidden" name="id" value={game.id} />
-        <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_7rem_9rem_6rem_auto] md:items-end">
-          <TextField
-            label="Game title"
-            name="title"
-            defaultValue={game.title}
-            required
-            maxLength={200}
-          />
-          <TextField
-            label="Year"
-            name="gotyYear"
-            type="number"
-            min={2000}
-            max={2100}
-            defaultValue={game.goty_year}
-            required
-          />
-          <Select label="Eligibility" name="eligibilityState" defaultValue={game.eligibility_state}>
-            <option value="eligible">Eligible</option>
-            <option value="ineligible">Ineligible</option>
-          </Select>
-          <TextField
-            label="Order"
-            name="displayOrder"
-            type="number"
-            min={0}
-            defaultValue={game.display_order}
-          />
-          <Button purpose="secondary" pending={pending}>
-            Save
+    <tr data-game-id={game.id} className="border-b border-line">
+      <th scope="row" className="p-3 text-left font-semibold">
+        {game.title}
+      </th>
+      <td className="p-3">{game.developer || "—"}</td>
+      <td className="p-3">{game.publisher || "—"}</td>
+      <td className="p-3">{game.goty_year}</td>
+      <td className="p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            purpose="secondary"
+            type="button"
+            onClick={() => {
+              setUpdated(false);
+              setEditing(true);
+            }}
+          >
+            Edit
           </Button>
+          <form action={removeAction}>
+            <input type="hidden" name="gameId" value={game.id} />
+            <Button purpose="error" pending={removePending}>
+              Delete
+            </Button>
+          </form>
+          {removeState.error && <Message tone="error">{removeState.error}</Message>}
+          {removeState.success && <Message tone="success">{removeState.success}</Message>}
+          {updated && <Message tone="success">Game updated.</Message>}
         </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <TextField
-            label="Developer (optional)"
-            name="developer"
-            defaultValue={game.developer ?? ""}
-            maxLength={160}
-          />
-          <TextField
-            label="Publisher (optional)"
-            name="publisher"
-            defaultValue={game.publisher ?? ""}
-            maxLength={160}
-          />
-          <TextField
-            label="Genre (optional)"
-            name="genre"
-            defaultValue={game.genre ?? ""}
-            maxLength={120}
-          />
-          <TextField
-            label="Cover art URL (optional)"
-            name="coverArtUrl"
-            type="url"
-            defaultValue={game.cover_art_url ?? ""}
-            maxLength={2048}
-          />
-          <TextField
-            label="Upload cover art (optional)"
-            name="coverArtFile"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="file:mr-3 file:border-0 file:bg-blue file:px-3 file:py-2 file:font-semibold file:text-white"
-            hint="JPEG, PNG, or WebP up to 10 MiB. An uploaded image replaces the URL."
-          />
-        </div>
-        {state.error && <Message tone="error">{state.error}</Message>}
-        {state.success && <Message tone="success">{state.success}</Message>}
-      </form>
-      <div className="flex flex-wrap items-center gap-3">
-        <form action={removeAction}>
-          <input type="hidden" name="gameId" value={game.id} />
-          <Button purpose="error" pending={removePending}>
-            Remove
-          </Button>
-        </form>
-        {removeState.error && <Message tone="error">{removeState.error}</Message>}
-        {removeState.success && <Message tone="success">{removeState.success}</Message>}
-      </div>
-    </li>
+      </td>
+    </tr>
   );
 }
 
@@ -336,100 +393,201 @@ function DeleteReadySessionForm({ sessionId }: { sessionId: string }) {
   );
 }
 
+const adminTabs = [
+  { id: "settings", label: "Page & timers" },
+  { id: "games", label: "Annual games" },
+  { id: "sessions", label: "Sessions" },
+] as const;
+
+type AdminTab = (typeof adminTabs)[number]["id"];
+
 export function GoForceAdminControls({ data }: { data: GoForceAdminData }) {
   const currentYear = new Date().getFullYear();
   const latestYear = data.years.includes(currentYear)
     ? currentYear
     : (data.years[0] ?? currentYear);
+  const [activeTab, setActiveTab] = useState<AdminTab>("settings");
+
   return (
-    <div className="grid gap-8">
-      <section
-        className="go-force-card border border-line p-5"
-        aria-labelledby="go-force-visibility"
+    <div className="grid gap-5">
+      <div
+        className="flex flex-wrap gap-2"
+        role="tablist"
+        aria-label="Go Force settings"
+        aria-orientation="horizontal"
       >
-        <h2 id="go-force-visibility" className="m-0 font-display text-[1.5rem] text-blue">
-          Public page visibility
-        </h2>
-        <p className="m-0 mt-1 text-muted">
-          Changes are saved as site content and take effect without a redeployment.
-        </p>
-        <VisibilityForm visible={data.settings.page_visible} />
-      </section>
+        {adminTabs.map((tab, index) => {
+          const selected = activeTab === tab.id;
+          return (
+            <Button
+              key={tab.id}
+              id={`go-force-tab-${tab.id}`}
+              type="button"
+              role="tab"
+              size="toolbar"
+              active={selected}
+              aria-selected={selected}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(event) => {
+                let nextIndex = index;
+                if (event.key === "ArrowRight") nextIndex = (index + 1) % adminTabs.length;
+                else if (event.key === "ArrowLeft") {
+                  nextIndex = (index - 1 + adminTabs.length) % adminTabs.length;
+                } else if (event.key === "Home") nextIndex = 0;
+                else if (event.key === "End") nextIndex = adminTabs.length - 1;
+                else return;
 
-      <section className="go-force-card border border-line p-5" aria-labelledby="go-force-timers">
-        <h2 id="go-force-timers" className="m-0 font-display text-[1.5rem] text-blue">
-          Voting timers
-        </h2>
-        <p className="m-0 mt-1 text-muted">
-          Round votes and the final ballot have separate countdowns. Active votes keep their current
-          deadline.
-        </p>
-        <VotingSettingsForm
-          roundVotingSeconds={data.settings.round_voting_seconds}
-          finalBallotSeconds={data.settings.final_ballot_seconds}
-        />
-      </section>
+                event.preventDefault();
+                const nextTab = adminTabs[nextIndex]!;
+                setActiveTab(nextTab.id);
+                document.getElementById(`go-force-tab-${nextTab.id}`)?.focus();
+              }}
+            >
+              {tab.label}
+            </Button>
+          );
+        })}
+      </div>
 
-      <section className="go-force-card border border-line p-5" aria-labelledby="go-force-games">
-        <h2 id="go-force-games" className="m-0 font-display text-[1.5rem] text-blue">
-          Annual eligible games
-        </h2>
-        <p className="m-0 mt-1 text-muted">
-          Only eligible games for the session year are snapshotted at start. Started sessions keep
-          their original list.
-        </p>
-        <AddGameForm latestYear={latestYear} />
-        {data.games.length ? (
-          <ul className="mt-5 list-none border-t border-line p-0">
-            {data.games.map((game) => (
-              <AnnualGameRow key={game.id} game={game} />
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-5 border-l-4 border-line bg-paper px-4 py-3 text-muted">
-            No games for this year yet. Add the first eligible title above.
+      {activeTab === "settings" && (
+        <div
+          id="go-force-panel-settings"
+          role="tabpanel"
+          aria-labelledby="go-force-tab-settings"
+          tabIndex={0}
+          className="grid gap-5"
+        >
+          <section
+            className="go-force-card border border-line p-5"
+            aria-labelledby="go-force-visibility"
+          >
+            <h2 id="go-force-visibility" className="m-0 font-display text-[1.5rem] text-blue">
+              Public page visibility
+            </h2>
+            <p className="m-0 mt-1 text-muted">
+              Changes are saved as site content and take effect without a redeployment.
+            </p>
+            <VisibilityForm visible={data.settings.page_visible} />
+          </section>
+
+          <section
+            className="go-force-card border border-line p-5"
+            aria-labelledby="go-force-timers"
+          >
+            <h2 id="go-force-timers" className="m-0 font-display text-[1.5rem] text-blue">
+              Voting timers
+            </h2>
+            <p className="m-0 mt-1 text-muted">
+              Round votes and the final ballot have separate countdowns. Active votes keep their
+              current deadline.
+            </p>
+            <VotingSettingsForm
+              roundVotingSeconds={data.settings.round_voting_seconds}
+              finalBallotSeconds={data.settings.final_ballot_seconds}
+            />
+          </section>
+        </div>
+      )}
+
+      {activeTab === "games" && (
+        <section
+          id="go-force-panel-games"
+          role="tabpanel"
+          aria-labelledby="go-force-tab-games"
+          tabIndex={0}
+          className="go-force-card border border-line p-5"
+        >
+          <h2 className="m-0 font-display text-[1.5rem] text-blue">Annual eligible games</h2>
+          <p className="m-0 mt-1 text-muted">
+            Eligible and ineligible games are listed here. Only eligible games for the session year
+            are snapshotted at start; started sessions keep their original list.
           </p>
-        )}
-      </section>
+          <AddGameForm latestYear={latestYear} />
+          {data.games.length ? (
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full min-w-[680px] border-collapse text-left">
+                <caption className="sr-only">
+                  Annual games, including eligible and ineligible titles
+                </caption>
+                <thead>
+                  <tr className="border-b-2 border-line">
+                    <th scope="col" className="p-3">
+                      Title
+                    </th>
+                    <th scope="col" className="p-3">
+                      Developer
+                    </th>
+                    <th scope="col" className="p-3">
+                      Publisher
+                    </th>
+                    <th scope="col" className="p-3">
+                      Year
+                    </th>
+                    <th scope="col" className="p-3">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.games.map((game) => (
+                    <AnnualGameRow key={game.id} game={game} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-5 border-l-4 border-line bg-paper px-4 py-3 text-muted">
+              No annual games yet. Add the first title above.
+            </p>
+          )}
+        </section>
+      )}
 
-      <section className="go-force-card border border-line p-5" aria-labelledby="go-force-sessions">
-        <h2 id="go-force-sessions" className="m-0 font-display text-[1.5rem] text-blue">
-          Sessions
-        </h2>
-        <p className="m-0 mt-1 text-muted">
-          A session locks its roster and game list when it starts.
-        </p>
-        <CreateSessionForm accounts={data.accounts} latestYear={latestYear} />
-        {data.sessions.length ? (
-          <ul className="mt-6 grid list-none gap-4 p-0">
-            {data.sessions.map((session) => (
-              <li key={session.id} className="grid gap-2 border border-line p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <strong>GOTY {session.goty_year}</strong>
-                    <p className="m-0 text-[.9rem] text-muted">
-                      {session.status.replaceAll("_", " ")} · {session.participants} player
-                      {session.participants === 1 ? "" : "s"}
-                      {session.vote_completion_percentage !== null
-                        ? ` · ${session.vote_completion_percentage}% votes`
-                        : ""}
-                    </p>
+      {activeTab === "sessions" && (
+        <section
+          id="go-force-panel-sessions"
+          role="tabpanel"
+          aria-labelledby="go-force-tab-sessions"
+          tabIndex={0}
+          className="go-force-card border border-line p-5"
+        >
+          <h2 className="m-0 font-display text-[1.5rem] text-blue">Sessions</h2>
+          <p className="m-0 mt-1 text-muted">
+            A session locks its roster and game list when it starts.
+          </p>
+          <CreateSessionForm accounts={data.accounts} latestYear={latestYear} />
+          {data.sessions.length ? (
+            <ul className="mt-6 grid list-none gap-4 p-0">
+              {data.sessions.map((session) => (
+                <li key={session.id} className="grid gap-2 border border-line p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <strong>GOTY {session.goty_year}</strong>
+                      <p className="m-0 text-[.9rem] text-muted">
+                        {session.status.replaceAll("_", " ")} · {session.participants} player
+                        {session.participants === 1 ? "" : "s"}
+                        {session.vote_completion_percentage !== null
+                          ? ` · ${session.vote_completion_percentage}% votes`
+                          : ""}
+                      </p>
+                    </div>
+                    <Link className="text-link" href={`/admin/go-force/sessions/${session.id}`}>
+                      Open session
+                    </Link>
                   </div>
-                  <Link className="text-link" href={`/admin/go-force/sessions/${session.id}`}>
-                    Open session
-                  </Link>
-                </div>
-                {session.status === "complete" && <ResultVisibilityForm session={session} />}
-                {session.status === "ready" && <DeleteReadySessionForm sessionId={session.id} />}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-5 border-l-4 border-line bg-paper px-4 py-3 text-muted">
-            No sessions yet. Prepare the roster above to create one.
-          </p>
-        )}
-      </section>
+                  {session.status === "complete" && <ResultVisibilityForm session={session} />}
+                  {session.status === "ready" && <DeleteReadySessionForm sessionId={session.id} />}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-5 border-l-4 border-line bg-paper px-4 py-3 text-muted">
+              No sessions yet. Prepare the roster above to create one.
+            </p>
+          )}
+        </section>
+      )}
     </div>
   );
 }
