@@ -103,6 +103,9 @@
   .form-stack { display: grid; gap: 1rem; margin-top: 1.4rem; }
   .form-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
   .form-actions a { padding: .5rem; }
+  .auth-signup-cta { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; padding: .8rem 1rem; border: 1px solid var(--line); background: var(--card); font-weight: 600; }
+  .auth-signup-link { color: var(--blue); font-weight: 700; text-decoration: underline; text-decoration-thickness: .1em; text-underline-offset: .2em; }
+  .auth-signup-link:hover { color: var(--red); }
   .role-form { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: .75rem; }
   .field-label { color: var(--ink); font-weight: 600; }
   .text-link { margin-top: .5rem; color: var(--blue); font-weight: 700; }

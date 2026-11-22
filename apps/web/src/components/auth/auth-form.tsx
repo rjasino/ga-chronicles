@@ -17,6 +17,11 @@ export function SignInForm() {
     <TextField label="Password" name="password" type="password" autoComplete="current-password" required />
     {state.error && <Message tone="error">{state.error}</Message>}
     <Button purpose="primary" pending={pending}>{pending ? "Signing in…" : "Sign in"}</Button>
-    <p>New here? <Link href="/sign-up">Create an account</Link></p>
+    <p className="auth-signup-cta">
+      <span>New here?</span>
+      <Link className="auth-signup-link" href="/sign-up">
+        Create an account
+      </Link>
+    </p>
   </form>;
 }
