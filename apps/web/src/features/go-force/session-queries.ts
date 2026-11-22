@@ -98,16 +98,27 @@ export async function getSessionView(sessionId: string): Promise<SessionView | n
   const roundIds = new Set(roundRows.map((round) => round.id));
   const sessionSelections = ((selections ?? []) as GameSelection[]).filter((selection) => roundIds.has(selection.round_id));
   const selectionIds = sessionSelections.map((selection) => selection.id);
-  const { data: votes } = selectionIds.length
-    ? await supabase.from("go_force_game_votes").select("*").in("selection_id", selectionIds)
-    : { data: [] as GameVote[] };
+  const votes: GameVote[] = [];
+  const votePageSize = 1000;
+  for (let offset = 0; selectionIds.length > 0; offset += votePageSize) {
+    const { data, error: voteError } = await supabase
+      .from("go_force_game_votes")
+      .select("*")
+      .in("selection_id", selectionIds)
+      .order("id", { ascending: true })
+      .range(offset, offset + votePageSize - 1);
+    if (voteError) throw new Error("Could not load Go Force votes.", { cause: voteError });
+    const page = (data ?? []) as GameVote[];
+    votes.push(...page);
+    if (page.length < votePageSize) break;
+  }
 
   return {
     session: session as GoForceSession,
     participants: (participants ?? []) as SessionParticipant[],
     games: (games ?? []) as SessionGameSnapshot[],
     rounds: roundRows,
-    selections: withSelections(sessionSelections, roundRows, (games ?? []) as SessionGameSnapshot[], (votes ?? []) as GameVote[]),
+    selections: withSelections(sessionSelections, roundRows, (games ?? []) as SessionGameSnapshot[], votes),
     finalBallotVotes: (finalBallotVotes ?? []) as FinalBallotVote[],
     result: (result as GOTYResult | null) ?? null,
   };
