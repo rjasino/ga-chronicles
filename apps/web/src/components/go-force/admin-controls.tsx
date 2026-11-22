@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Message } from "@/components/ui/message";
 import { Select, TextField } from "@/components/ui/text-field";
+import { AnnualGamesImport } from "@/components/go-force/annual-games-import";
 import type { AdminSessionListItem, GoForceAdminData } from "@/features/go-force/admin-queries";
 import {
   removeAnnualGame,
@@ -496,13 +497,19 @@ export function GoForceAdminControls({ data }: { data: GoForceAdminData }) {
           role="tabpanel"
           aria-labelledby="go-force-tab-games"
           tabIndex={0}
-          className="go-force-card border border-line p-5"
+          className="go-force-card min-w-0 border border-line p-5"
         >
           <h2 className="m-0 font-display text-[1.5rem] text-blue">Annual eligible games</h2>
           <p className="m-0 mt-1 text-muted">
             Eligible and ineligible games are listed here. Only eligible games for the session year
             are snapshotted at start; started sessions keep their original list.
           </p>
+          <div className="mt-4">
+            <AnnualGamesImport
+              existingGames={data.games.map(({ goty_year, title }) => ({ goty_year, title }))}
+            />
+          </div>
+          <h3 className="mb-2 mt-6 font-display text-[1.25rem] text-blue">Add one game</h3>
           <AddGameForm latestYear={latestYear} />
           {data.games.length ? (
             <div className="mt-5 overflow-x-auto">

@@ -1,6 +1,27 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 
+function gamesJsonFile(records: unknown[], name = "annual-games.json") {
+  return {
+    name,
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(records)),
+  };
+}
+
+async function signInAdmin(page: import("@playwright/test").Page) {
+  await page.goto("/sign-in");
+  await page.getByLabel("Username").fill("localadmin");
+  await page.getByLabel("Password").fill("local-admin-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/$/);
+}
+
+async function openAnnualGames(page: import("@playwright/test").Page) {
+  await page.goto("/admin/go-force");
+  await page.getByRole("tab", { name: "Annual games" }).click();
+}
+
 test("admins control Go Force visibility and maintain the annual list without redeploying", async ({
   page,
   browser,
@@ -230,4 +251,211 @@ test("Go Force navigation is visible to admins always and rostered players only 
   await expect(player.getByRole("link", { name: "Go Force", exact: true })).toHaveCount(0);
 
   await playerContext.close();
+});
+
+test("admins import a valid annual-game JSON file and can still add one game manually", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await signInAdmin(page);
+  await openAnnualGames(page);
+
+  const runId = Date.now();
+  const year = 2070 + (runId % 20);
+  const firstTitle = `Import First ${runId}`;
+  const secondTitle = `Import Second ${runId}`;
+
+  await page.getByLabel("Games JSON file").setInputFiles(
+    gamesJsonFile([
+      { title: firstTitle, gotyYear: year },
+      {
+        title: secondTitle,
+        gotyYear: year,
+        eligibilityState: "ineligible",
+        displayOrder: 9,
+        developer: "Import Studio",
+        publisher: "Import Publisher",
+        genre: "Strategy",
+        coverArtUrl: "https://example.test/import-cover.webp",
+      },
+    ]),
+  );
+
+  await expect(page.getByRole("heading", { name: "Review import" })).toBeVisible();
+  await expect(page.getByText(`GOTY ${year} \u00b7 2 to add \u00b7 0 to skip`)).toBeVisible();
+  const reviewTable = page.getByRole("table", { name: "Parsed annual game records" });
+  await expect(reviewTable).toContainText(firstTitle);
+  await expect(reviewTable).toContainText(secondTitle);
+  await expect(reviewTable).toContainText("Import Studio");
+  await expect(reviewTable).toContainText("ineligible");
+
+  await page.getByRole("button", { name: "Confirm import" }).click();
+  await expect(page.getByText("Added 2 games. Skipped 0 duplicate games.")).toBeVisible();
+
+  const annualTable = page.getByRole("table", {
+    name: "Annual games, including eligible and ineligible titles",
+  });
+  await expect(annualTable).toContainText(firstTitle);
+  await expect(annualTable).toContainText(secondTitle);
+
+  const manualTitle = `Manual After Import ${runId}`;
+  await page.getByLabel("Game title").fill(manualTitle);
+  await page.getByLabel("GOTY year").first().fill(String(year));
+  await page.getByRole("button", { name: "Add game" }).click();
+  await expect(page.getByText("Game added.")).toBeVisible();
+  await expect(annualTable).toContainText(manualTitle);
+});
+
+test("invalid files and records never change the annual list", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signInAdmin(page);
+  await openAnnualGames(page);
+
+  const rowsBefore = await page.locator("tr[data-game-id]").count();
+  const fileInput = page.getByLabel("Games JSON file");
+
+  await fileInput.setInputFiles({
+    name: "malformed.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{not valid json"),
+  });
+  await expect(page.getByText("The selected file is not valid JSON.")).toBeVisible();
+
+  await fileInput.setInputFiles(gamesJsonFile([]));
+  await expect(page.getByText("The JSON file must contain at least one game record.")).toBeVisible();
+
+  await fileInput.setInputFiles(
+    gamesJsonFile([
+      { title: "Mixed Year One", gotyYear: 2030 },
+      { title: "Mixed Year Two", gotyYear: 2031 },
+    ]),
+  );
+  await expect(page.getByText("All records in the file must use the same GOTY year.")).toBeVisible();
+
+  await fileInput.setInputFiles(
+    gamesJsonFile([
+      { title: "", gotyYear: 2030 },
+      { title: "Valid Companion", gotyYear: 2030 },
+    ]),
+  );
+  await expect(page.getByText("Fix these records before importing:")).toBeVisible();
+  await expect(page.getByText(/Record 1: Add a game title\./)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Confirm import" })).toBeDisabled();
+
+  await fileInput.setInputFiles({
+    name: "too-large.json",
+    mimeType: "application/json",
+    buffer: Buffer.alloc(524_289, "x"),
+  });
+  await expect(page.getByText("Choose a JSON file that is 512 KiB or smaller.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review import" })).toHaveCount(0);
+
+  expect(await page.locator("tr[data-game-id]").count()).toBe(rowsBefore);
+});
+
+test("admins skip duplicates and can cancel a review without saving", async ({ page }) => {
+  test.setTimeout(120_000);
+  await signInAdmin(page);
+  await openAnnualGames(page);
+
+  const runId = Date.now();
+  const year = 2050 + (runId % 20);
+  const existingTitle = `Existing Import Target ${runId}`;
+  const newTitle = `Fresh Import Target ${runId}`;
+
+  await page.getByLabel("Game title").fill(existingTitle);
+  await page.getByLabel("GOTY year").first().fill(String(year));
+  await page.getByRole("button", { name: "Add game" }).click();
+  await expect(page.getByText("Game added.")).toBeVisible();
+
+  const rowsBefore = await page.locator("tr[data-game-id]").count();
+  const duplicateFile = gamesJsonFile([
+    { title: `  ${existingTitle.toUpperCase()} `, gotyYear: year },
+    { title: newTitle, gotyYear: year },
+    { title: ` ${newTitle.toLowerCase()} `, gotyYear: year },
+  ]);
+
+  await page.getByLabel("Games JSON file").setInputFiles(duplicateFile);
+  await expect(page.getByText(`GOTY ${year} \u00b7 1 to add \u00b7 2 to skip`)).toBeVisible();
+  await expect(page.getByText(/is already in the annual list for this year/)).toBeVisible();
+  await expect(page.getByText(/repeats an earlier title in this file/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("heading", { name: "Review import" })).toHaveCount(0);
+  await expect(page.getByText(/^Added /)).toHaveCount(0);
+  expect(await page.locator("tr[data-game-id]").count()).toBe(rowsBefore);
+
+  await page.getByLabel("Games JSON file").setInputFiles(duplicateFile);
+  await page.getByRole("button", { name: "Confirm import" }).click();
+  await expect(page.getByText("Added 1 game. Skipped 2 duplicate games.")).toBeVisible();
+
+  const annualTable = page.getByRole("table", {
+    name: "Annual games, including eligible and ineligible titles",
+  });
+  await expect(annualTable).toContainText(newTitle);
+  await expect(
+    page.locator("tr[data-game-id]").filter({ hasText: existingTitle }),
+  ).toHaveCount(1);
+});
+
+test("unauthorized accounts cannot reach the import controls", async ({ page }) => {
+  await page.goto("/sign-in");
+  await page.getByLabel("Username").fill("localreader");
+  await page.getByLabel("Password").fill("local-reader-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  await page.goto("/admin/go-force");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "Go Force GOTY" })).toHaveCount(0);
+  await expect(page.getByLabel("Games JSON file")).toHaveCount(0);
+});
+
+test("importing another annual game does not rewrite a started session snapshot", async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  await signInAdmin(page);
+  await openAnnualGames(page);
+
+  const runId = Date.now();
+  const year = 2090 + (runId % 10);
+  const seedTitle = `Snapshot Seed ${runId}`;
+  const laterTitle = `Snapshot Later ${runId}`;
+
+  await page.getByLabel("Games JSON file").setInputFiles(
+    gamesJsonFile([{ title: seedTitle, gotyYear: year }]),
+  );
+  await page.getByRole("button", { name: "Confirm import" }).click();
+  await expect(page.getByText("Added 1 game. Skipped 0 duplicate games.")).toBeVisible();
+
+  await page.getByRole("tab", { name: "Sessions" }).click();
+  await page.getByLabel("GOTY year").last().fill(String(year));
+  await page.getByLabel(/Local Admin \(localadmin\)/).check();
+  await page.getByRole("button", { name: "Create ready session" }).click();
+  await page.getByRole("link", { name: "Open the facilitator screen" }).click();
+  await expect(page).toHaveURL(/\/admin\/go-force\/sessions\/[0-9a-f-]+$/);
+  const sessionUrl = page.url();
+  await page.getByRole("button", { name: "Start session" }).click();
+  await expect(page.getByText("Round 1 of 3")).toBeVisible();
+  const remaining = page.getByText(/\d+ games? left to select/);
+  const remainingBefore = await remaining.textContent();
+  await expect(remaining).toBeVisible();
+  await expect(page.getByText(laterTitle)).toHaveCount(0);
+
+  await openAnnualGames(page);
+  await page.getByLabel("Games JSON file").setInputFiles(
+    gamesJsonFile([{ title: laterTitle, gotyYear: year }]),
+  );
+  await page.getByRole("button", { name: "Confirm import" }).click();
+  await expect(page.getByText("Added 1 game. Skipped 0 duplicate games.")).toBeVisible();
+  const annualTable = page.getByRole("table", {
+    name: "Annual games, including eligible and ineligible titles",
+  });
+  await expect(annualTable).toContainText(laterTitle);
+
+  await page.goto(sessionUrl);
+  await expect(page.getByText("Round 1 of 3")).toBeVisible();
+  await expect(page.getByText(/\d+ games? left to select/)).toHaveText(remainingBefore ?? "");
+  await expect(page.getByText(laterTitle)).toHaveCount(0);
 });

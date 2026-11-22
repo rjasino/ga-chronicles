@@ -6,10 +6,19 @@ import { createClient } from "@/lib/supabase/server";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { canManageGoForce } from "@/features/go-force/access";
 import { annualGameInputSchema, goForceVotingSettingsSchema, pageVisibilitySchema, resultVisibilitySchema } from "@/features/go-force/admin-schemas";
+import {
+  parseAnnualGameImport,
+  type AnnualGameImportExisting,
+} from "@/features/go-force/annual-game-import";
 import { articleImageExtension, validateImageFile } from "@/features/articles/body-image";
 import { GO_FORCE_COVER_BUCKET, GO_FORCE_COVER_MAX_SIZE } from "@/features/go-force/game-covers";
 
 export type AdminActionState = { error?: string; success?: string; gameId?: string; pageVisible?: boolean };
+
+export type AnnualGameImportActionState = AdminActionState & {
+  addedCount?: number;
+  skippedCount?: number;
+};
 
 function revalidateAdminContent() {
   revalidatePath("/go-force");
@@ -143,6 +152,107 @@ export async function saveAnnualGame(_state: AdminActionState, formData: FormDat
 
   revalidateAdminContent();
   return { gameId: result.data.id, success: parsed.data.id ? "Game updated." : "Game added." };
+}
+
+export async function importAnnualGames(
+  _state: AnnualGameImportActionState,
+  formData: FormData,
+): Promise<AnnualGameImportActionState> {
+  const session = await getVerifiedSession();
+  if (!session || !canManageGoForce(session.roles)) {
+    return { error: "Only an admin can import the annual game list." };
+  }
+
+  const rawJson = formData.get("json");
+  if (typeof rawJson !== "string" || !rawJson.trim()) {
+    return { error: "Choose a JSON file to import." };
+  }
+
+  const byteLength = new TextEncoder().encode(rawJson).length;
+  const initialPass = parseAnnualGameImport(rawJson, { byteLength });
+  if (!initialPass.ok) return { error: initialPass.error };
+  if (initialPass.invalidRecords.length > 0 || initialPass.gotyYear === null) {
+    return { error: "Fix the invalid records in the file before importing." };
+  }
+
+  const supabase = await createClient();
+  const { data: existingRows, error: existingError } = await supabase
+    .from("go_force_annual_games")
+    .select("title")
+    .eq("goty_year", initialPass.gotyYear);
+  if (existingError) {
+    console.error("Go Force annual game import could not read the existing list.", {
+      code: existingError.code,
+      message: existingError.message,
+    });
+    return { error: "The existing annual games could not be checked. Try again." };
+  }
+
+  const existingGames: AnnualGameImportExisting[] = (existingRows ?? []).map((row) => ({
+    goty_year: initialPass.gotyYear as number,
+    title: row.title,
+  }));
+  const review = parseAnnualGameImport(rawJson, { existingGames, byteLength });
+  if (!review.ok) return { error: review.error };
+  if (review.invalidRecords.length > 0) {
+    return { error: "Fix the invalid records in the file before importing." };
+  }
+
+  if (review.additions.length === 0) {
+    revalidateAdminContent();
+    return {
+      addedCount: 0,
+      skippedCount: review.skipCount,
+      success: `No new games were added. ${review.skipCount} duplicate ${
+        review.skipCount === 1 ? "game was" : "games were"
+      } skipped.`,
+    };
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("go_force_annual_games")
+    .insert(
+      review.additions.map((record) => ({
+        title: record.title,
+        goty_year: record.gotyYear,
+        eligibility_state: record.eligibilityState,
+        display_order: record.displayOrder,
+        developer: record.developer,
+        publisher: record.publisher,
+        genre: record.genre,
+        cover_art_url: record.coverArtUrl,
+      })),
+    )
+    .select("id");
+
+  if (insertError || !inserted) {
+    if (insertError?.code === "23505") {
+      return {
+        error:
+          "Another admin added one of these games while you were reviewing. Nothing was saved. Refresh and review the file again.",
+      };
+    }
+    if (insertError) {
+      console.error("Go Force annual game import failed.", {
+        code: insertError.code,
+        message: insertError.message,
+      });
+    } else {
+      console.error("Go Force annual game import returned no saved rows.");
+    }
+    return {
+      error: "The games could not be saved. Nothing from the batch was saved. Refresh and review the file again.",
+    };
+  }
+
+  revalidateAdminContent();
+  return {
+    addedCount: inserted.length,
+    skippedCount: review.skipCount,
+    success: `Added ${inserted.length} ${inserted.length === 1 ? "game" : "games"}. Skipped ${
+      review.skipCount
+    } duplicate ${review.skipCount === 1 ? "game" : "games"}.`,
+  };
 }
 
 export async function removeAnnualGame(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
