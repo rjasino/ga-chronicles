@@ -16,6 +16,22 @@ import type {
   SelectionWithVotes,
 } from "@/features/go-force/types";
 
+const PAGE_SIZE = 1000;
+
+async function fetchAllPages<T>(
+  fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown | null }>,
+  errorMessage: string,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await fetchPage(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(errorMessage, { cause: error });
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) return rows;
+  }
+}
+
 function roundPoolGameIds(
   roundNumber: number,
   games: SessionGameSnapshot[],
@@ -84,33 +100,44 @@ export async function getSessionView(sessionId: string): Promise<SessionView | n
   if (error) throw new Error("Could not load this Go Force session.", { cause: error });
   if (!session) return null;
 
-  const [{ data: participants }, { data: games }, { data: rounds }, { data: selections }, { data: finalBallotVotes }, { data: result }] =
+  const [{ data: participants }, { data: games }, { data: rounds }, { data: finalBallotVotes }, { data: result }] =
     await Promise.all([
       supabase.from("go_force_session_participants").select("*").eq("session_id", sessionId).order("roster_order", { ascending: true }),
       supabase.from("go_force_session_games").select("*").eq("session_id", sessionId).order("display_order", { ascending: true }),
       supabase.from("go_force_rounds").select("*").eq("session_id", sessionId).order("round_number", { ascending: true }),
-      supabase.from("go_force_selections").select("*").order("selection_order", { ascending: true }),
       supabase.from("go_force_final_ballot_votes").select("*").eq("session_id", sessionId),
       supabase.from("go_force_results").select("*").eq("session_id", sessionId).maybeSingle(),
     ]);
 
   const roundRows = (rounds ?? []) as GoForceRound[];
-  const roundIds = new Set(roundRows.map((round) => round.id));
-  const sessionSelections = ((selections ?? []) as GameSelection[]).filter((selection) => roundIds.has(selection.round_id));
+  const roundIds = roundRows.map((round) => round.id);
+  const sessionSelections = roundIds.length
+    ? await fetchAllPages<GameSelection>(
+        (from, to) => supabase
+          .from("go_force_selections")
+          .select("*")
+          .in("round_id", roundIds)
+          .order("selection_order", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+        "Could not load Go Force selections.",
+      )
+    : [];
   const selectionIds = sessionSelections.map((selection) => selection.id);
   const votes: GameVote[] = [];
-  const votePageSize = 1000;
-  for (let offset = 0; selectionIds.length > 0; offset += votePageSize) {
-    const { data, error: voteError } = await supabase
-      .from("go_force_game_votes")
-      .select("*")
-      .in("selection_id", selectionIds)
-      .order("id", { ascending: true })
-      .range(offset, offset + votePageSize - 1);
-    if (voteError) throw new Error("Could not load Go Force votes.", { cause: voteError });
-    const page = (data ?? []) as GameVote[];
-    votes.push(...page);
-    if (page.length < votePageSize) break;
+  for (let start = 0; start < selectionIds.length; start += PAGE_SIZE) {
+    const selectionIdBatch = selectionIds.slice(start, start + PAGE_SIZE);
+    votes.push(
+      ...await fetchAllPages<GameVote>(
+        (from, to) => supabase
+          .from("go_force_game_votes")
+          .select("*")
+          .in("selection_id", selectionIdBatch)
+          .order("id", { ascending: true })
+          .range(from, to),
+        "Could not load Go Force votes.",
+      ),
+    );
   }
 
   return {
