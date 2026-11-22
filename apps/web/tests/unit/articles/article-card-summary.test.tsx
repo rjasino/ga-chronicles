@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { ArticleCard } from "@/components/articles/article-card";
 import type { Article } from "@/features/articles/queries";
 
@@ -15,6 +15,8 @@ function article(body: string): Article {
 }
 
 describe("ArticleCard summary", () => {
+  afterEach(cleanup);
+
   it("shows the body as text without markup tags", () => {
     const { container } = render(<ArticleCard article={article("<p>AI may help <strong>smaller teams</strong>.</p>")} />);
     const summary = container.querySelector(".article-card__summary");
