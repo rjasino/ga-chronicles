@@ -4,7 +4,7 @@ Use this guide to validate the feature end to end after implementation.
 
 ## Prerequisites
 
-- Local Supabase running (storage on `127.0.0.1:54321`).
+- Local Supabase running (storage on `127.0.0.1:55321`).
 - An account with the publish role (editor or admin).
 - Dependencies installed in `apps/web`.
 

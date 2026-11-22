@@ -17,7 +17,8 @@ From the repository root:
 
 ```sh
 npm --prefix apps/web install
-npx supabase start && npx supabase db reset
+npm --prefix apps/web run supabase:start
+npm --prefix apps/web run supabase:reset
 npm --prefix apps/web run dev
 ```
 

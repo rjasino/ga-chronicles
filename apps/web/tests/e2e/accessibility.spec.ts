@@ -80,8 +80,7 @@ test("article byline and read time have no axe violations in either theme", asyn
   expect(darkResult.violations).toEqual([]);
 });
 
-test("the theme toggle is accessible and both themes have no axe violations", async ({ page }) => {
-  const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+test("the theme toggle is accessible and both themes have no axe violations", async ({ page }) => {  const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
   for (const path of ["/", "/sign-in"]) {
     await page.goto(path);
     const toggle = page.getByRole("button", { name: /dark mode/i });
@@ -99,4 +98,42 @@ test("the theme toggle is accessible and both themes have no axe violations", as
     await toggle.click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   }
+});
+
+test("the Go Force JSON import workflow is labeled, keyboard reachable, and axe-clean", async ({
+  page,
+}) => {
+  const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+  await page.goto("/sign-in");
+  await page.getByLabel("Username").fill("localadmin");
+  await page.getByLabel("Password").fill("local-admin-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  await page.goto("/admin/go-force");
+  await page.getByRole("tab", { name: "Annual games" }).click();
+
+  const fileInput = page.getByLabel("Games JSON file");
+  await fileInput.focus();
+  await expect(fileInput).toBeFocused();
+
+  const result = await new AxeBuilder({ page }).withTags(tags).analyze();
+  expect(result.violations).toEqual([]);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.locator("body").evaluate((node) => node.scrollWidth)).toBeLessThanOrEqual(390);
+
+  await fileInput.setInputFiles({
+    name: "a11y-games.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify([
+        { title: "Accessible Import Fixture", gotyYear: 2049 },
+        { title: "", gotyYear: 2049 },
+      ]),
+    ),
+  });
+  await expect(page.getByText("Fix these records before importing:")).toBeVisible();
+  const reviewResult = await new AxeBuilder({ page }).withTags(tags).analyze();
+  expect(reviewResult.violations).toEqual([]);
 });

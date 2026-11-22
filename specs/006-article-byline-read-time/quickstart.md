@@ -11,8 +11,8 @@ Use this guide to validate the feature end to end locally. It does not contain i
 ## 1. Start local Supabase and apply migrations
 
 ```powershell
-npx supabase start
-npx supabase db reset
+npm --prefix apps/web run supabase:start
+npm --prefix apps/web run supabase:reset
 ```
 
 `db reset` applies `supabase/migrations/0009_article-bylines.sql` along with the existing migrations and runs `supabase/seed.sql`.
@@ -20,7 +20,7 @@ npx supabase db reset
 ## 2. Run database tests
 
 ```powershell
-npx supabase test db
+npm --prefix apps/web run test:database
 ```
 
 Expected: `article-bylines.test.sql` passes. It confirms:

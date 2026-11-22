@@ -16,5 +16,21 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
-    : { command: "npm run dev", url: "http://127.0.0.1:3000", reuseExistingServer: !process.env.CI },
+    : [
+        {
+          command: "node --experimental-strip-types tests/e2e/support/wheel-of-names-mock-server.ts",
+          url: "http://127.0.0.1:3201/health",
+          reuseExistingServer: false,
+        },
+        {
+          command: "npm run dev",
+          url: "http://127.0.0.1:3000",
+          reuseExistingServer: false,
+          env: {
+            ...process.env,
+            WHEEL_OF_NAMES_API_KEY: "playwright-mock-key",
+            WHEEL_OF_NAMES_API_URL: "http://127.0.0.1:3201/api/v3/wheels/animate",
+          },
+        },
+      ],
 });

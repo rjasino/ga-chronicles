@@ -16,12 +16,12 @@ From the repository root:
 
 ```sh
 npm --prefix apps/web install
-npx supabase start
-npx supabase db reset
+npm --prefix apps/web run supabase:start
+npm --prefix apps/web run supabase:reset
 npm --prefix apps/web run dev
 ```
 
-Copy the `API_URL`, `ANON_KEY`, and `SERVICE_ROLE_KEY` values printed by `npx supabase status -o env` into `.env.local` as `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. Add `SITE_URL=http://localhost:3000`. Keep the service-role value server-only; all values here must be local development credentials.
+Copy the `API_URL`, `ANON_KEY`, and `SERVICE_ROLE_KEY` values printed by `npm --prefix apps/web exec -- supabase status -o env` into `.env.local` as `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. Add `SITE_URL=http://localhost:3000`. Keep the service-role value server-only; all values here must be local development credentials.
 
 The reset seeds disposable, local-only users (never use these credentials in production):
 
@@ -82,14 +82,14 @@ Validated on 2026-09-27 with Node 24.20.0, npm 11.4.1, Supabase CLI 2.118.0, and
 
 ## Verify local article cover storage
 
-With local Supabase running, open Supabase Studio at <http://127.0.0.1:54323> and select **Storage → article-covers** to inspect uploaded objects. The `articles.cover_image` column should contain a public URL in the form `http://127.0.0.1:54321/storage/v1/object/public/article-covers/<user-id>/<filename>`. Open that URL in a browser to verify it serves the image. Removing a cover in the editor clears the column and removes the associated object. Accepted formats are JPEG, PNG, and WebP, up to the configured 10 MiB limit.
+With local Supabase running, open Supabase Studio at <http://127.0.0.1:55323> and select **Storage → article-covers** to inspect uploaded objects. The `articles.cover_image` column should contain a public URL in the form `http://127.0.0.1:55321/storage/v1/object/public/article-covers/<user-id>/<filename>`. Open that URL in a browser to verify it serves the image. Removing a cover in the editor clears the column and removes the associated object. Accepted formats are JPEG, PNG, and WebP, up to the configured 10 MiB limit.
 
 ## Shutdown
 
 Stop the local app process, then stop local Supabase services:
 
 ```sh
-npx supabase stop
+npm --prefix apps/web run supabase:stop
 ```
 
 See [data-model.md](data-model.md) for entities/invariants and [the interaction contract](contracts/web-interaction-contract.md) for expected observable behavior.

@@ -103,6 +103,9 @@
   .form-stack { display: grid; gap: 1rem; margin-top: 1.4rem; }
   .form-actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
   .form-actions a { padding: .5rem; }
+  .auth-signup-cta { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; padding: .8rem 1rem; border: 1px solid var(--line); background: var(--card); font-weight: 600; }
+  .auth-signup-link { color: var(--blue); font-weight: 700; text-decoration: underline; text-decoration-thickness: .1em; text-underline-offset: .2em; }
+  .auth-signup-link:hover { color: var(--red); }
   .role-form { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-top: .75rem; }
   .field-label { color: var(--ink); font-weight: 600; }
   .text-link { margin-top: .5rem; color: var(--blue); font-weight: 700; }
@@ -160,6 +163,29 @@
   to { transform: rotate(360deg); }
 }
 
+@layer components {
+  .go-force-roulette { display: grid; justify-items: center; gap: .5rem; margin: 0; }
+  .go-force-roulette__animation {
+    display: block;
+    width: min(22rem, 100%);
+    height: auto;
+    border: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .go-force-roulette__result {
+    display: grid;
+    justify-items: center;
+    gap: .15rem;
+    margin: 0;
+    color: var(--blue);
+    text-align: center;
+  }
+  .go-force-roulette__result-label { color: var(--muted); font-size: .8rem; }
+  .go-force-roulette__error { margin: 0; color: var(--red); font-weight: 700; text-align: center; }
+  .go-force-roulette__caption { margin: 0; color: var(--muted); font-size: .9rem; text-align: center; }
+  .go-force-roulette__reduced-motion-note { display: none; }
+}
+
 @media (max-width: 760px) {
   .people-filters__field, .people-sort__field { flex: 1 1 100%; }
 }
@@ -167,4 +193,7 @@
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .go-force-roulette__animation { display: none; }
+  .go-force-roulette__animated-note { display: none; }
+  .go-force-roulette__reduced-motion-note { display: inline; }
 }
