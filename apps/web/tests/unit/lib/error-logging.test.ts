@@ -85,6 +85,21 @@ describe("reportFailure", () => {
     expect(diagnostic.message).toContain("[REDACTED]");
   });
 
+  it("redacts generic token and client_secret assignments", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    reportFailure({
+      operation: "provider.call",
+      error: new Error(
+        "request failed https://provider.test/path?token=query-token client_secret=client-secret",
+      ),
+    });
+
+    const output = consoleOutput(log);
+    expect(output).not.toContain("query-token");
+    expect(output).not.toContain("client-secret");
+  });
+
   it("keeps only allow-listed context fields with bounded values", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
 

@@ -1,5 +1,8 @@
 const messages: Record<string, string> = {
   NOT_AUTHORIZED: "Only the game master or an admin can do that.",
+  INVALID_GOTY_YEAR: "Choose a year from 2000 through 2100.",
+  INVALID_ROSTER: "Select between 1 and 64 players.",
+  ACTIVE_ACCOUNT_REQUIRED: "Every selected player must have an active account.",
   SESSION_NOT_FOUND: "That Go Force session could not be found.",
   SESSION_NOT_READY: "This session has already started.",
   SESSION_NOT_LIVE: "This session is not accepting game votes.",

@@ -75,7 +75,7 @@ export async function signUpWithCredentials(_state: AuthState, formData: FormDat
   }
   if (existing) return { error: "That username is unavailable. Choose another." };
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
-  if (error || !data.user) {
+  if (error) {
     if (isUnexpectedAuthError(error)) {
       return failureResult({
         operation: "auth.sign-up.create-user",
@@ -84,6 +84,13 @@ export async function signUpWithCredentials(_state: AuthState, formData: FormDat
       });
     }
     return { error: "We could not create the account. Check the details and try again." };
+  }
+  if (!data.user) {
+    return failureResult({
+      operation: "auth.sign-up.create-user",
+      error: new Error("Supabase Auth createUser returned no user."),
+      message: "We could not create the account. Check the details and try again.",
+    });
   }
   const { error: accountError } = await admin.from("accounts").insert({ id: data.user.id, username });
   const { error: lookupError } = accountError ? { error: accountError } : await admin.from("account_auth_lookup").insert({ account_id: data.user.id, email });

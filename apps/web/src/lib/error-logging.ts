@@ -40,7 +40,7 @@ const REDACTIONS: ReadonlyArray<readonly [RegExp, string]> = [
     "[REDACTED_JWT]",
   ],
   [
-    /\b(apikey|api_key|access_token|refresh_token|password|secret|authorization)\b\s*[:=]\s*("[^"]*"|'[^']*'|[^\s,;]+)/gi,
+    /\b(apikey|api_key|access_token|refresh_token|client_secret|token|password|secret|authorization)\b\s*[:=]\s*("[^"]*"|'[^']*'|[^\s,;]+)/gi,
     "$1=[REDACTED]",
   ],
   [/\bsb_(?:secret|publishable)_[A-Za-z0-9_-]+/g, "[REDACTED_KEY]"],

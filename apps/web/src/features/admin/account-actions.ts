@@ -64,7 +64,7 @@ export async function createInternalAccount(_state: AccountActionState, formData
   if (existing) return { error: "That username is already in use." };
   if (!parsed.data.password) return { error: "A temporary password is required." };
   const { data, error } = await admin.auth.admin.createUser({ email: parsed.data.email, password: parsed.data.password, email_confirm: true });
-  if (error || !data.user) {
+  if (error) {
     if (isUnexpectedAuthError(error)) {
       return failureResult({
         operation: "admin.accounts.create-user",
@@ -73,6 +73,13 @@ export async function createInternalAccount(_state: AccountActionState, formData
       });
     }
     return { error: "The account could not be created. Check the email and try again." };
+  }
+  if (!data.user) {
+    return failureResult({
+      operation: "admin.accounts.create-user",
+      error: new Error("Supabase Auth createUser returned no user."),
+      message: "The account could not be created. Check the email and try again.",
+    });
   }
   const { error: accountError } = await admin.from("accounts").insert({ id: data.user.id, username: parsed.data.username });
   const { error: lookupError } = accountError ? { error: accountError } : await admin.from("account_auth_lookup").insert({ account_id: data.user.id, email: parsed.data.email });

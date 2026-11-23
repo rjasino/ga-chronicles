@@ -74,9 +74,14 @@ export async function drawGoForceSelection(
     );
   } catch (error) {
     if (error instanceof WheelOfNamesError) {
-      return {
-        error: error.requestId ? `${error.message} (Reference ${error.requestId})` : error.message,
-      };
+      return failureResult({
+        operation: "go-force.selection.spin",
+        error,
+        message: error.requestId
+          ? `${error.message} (Reference ${error.requestId})`
+          : error.message,
+        context: { sessionId },
+      });
     }
     return failureResult({
       operation: "go-force.selection.spin",
