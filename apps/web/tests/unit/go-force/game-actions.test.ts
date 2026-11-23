@@ -70,8 +70,9 @@ describe("drawGoForceSelection", () => {
   it("does not commit or publish when provider response processing fails", async () => {
     actions.spinWheelOfNames.mockRejectedValue(new Error("Maximum call stack size exceeded"));
 
-    await expect(drawGoForceSelection({}, drawForm())).resolves.toEqual({
+    await expect(drawGoForceSelection({}, drawForm())).resolves.toMatchObject({
       error: "Wheel of Names could not complete the spin. Please retry.",
+      errorId: expect.any(String),
     });
 
     expect(actions.createClient).not.toHaveBeenCalled();

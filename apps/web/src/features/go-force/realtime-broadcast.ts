@@ -1,4 +1,5 @@
 import { getPublicEnv, getServiceRoleKey } from "@/lib/env";
+import { reportFailure } from "@/lib/error-logging";
 import { GO_FORCE_UPDATED_EVENT, goForceSessionTopic } from "@/features/go-force/realtime";
 
 /**
@@ -36,9 +37,17 @@ export async function publishGoForceSessionUpdate(sessionId: string): Promise<vo
       cache: "no-store",
     });
     if (!response.ok) {
-      console.error("Go Force Realtime broadcast was rejected.", response.status, await response.text());
+      reportFailure({
+        operation: "go-force.realtime.broadcast",
+        error: new Error("Realtime broadcast was rejected."),
+        context: { status: response.status, sessionId },
+      });
     }
   } catch (error) {
-    console.error("Go Force Realtime broadcast failed.", error);
+    reportFailure({
+      operation: "go-force.realtime.broadcast",
+      error,
+      context: { sessionId },
+    });
   }
 }

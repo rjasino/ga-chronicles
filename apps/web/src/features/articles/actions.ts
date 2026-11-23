@@ -18,9 +18,11 @@ import {
 import { articleInputSchema } from "@/features/articles/schema";
 import { richBodyHasContent, sanitizeRichHtml } from "@/features/articles/richtext/rich-html";
 import { bodyImagePaths, reconcileArticleBodyImages } from "@/features/articles/body-image-refs";
+import { failureResult, reportFailure } from "@/lib/error-logging";
 
 export type EditorState = {
   error?: string;
+  errorId?: string;
   message?: string;
   articleId?: string;
   title?: string;
@@ -75,7 +77,19 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
   let existingCover: string | null = null;
   if (articleId) {
     const { data: existingArticle, error } = await supabase.from("articles").select("cover_image").eq("id", articleId).maybeSingle();
-    if (error || !existingArticle)
+    if (error) {
+      return {
+        ...failureResult({
+          operation: "articles.save.load",
+          error,
+          message: "Could not load this article. Refresh the page and try again.",
+          context: { articleId },
+        }),
+        ...values,
+        articleId,
+      };
+    }
+    if (!existingArticle)
       return { error: "Could not load this article. Refresh the page and try again.", ...values, articleId };
     existingCover = existingArticle.cover_image;
   }
@@ -92,7 +106,18 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
       contentType: coverFile.type,
       upsert: false,
     });
-    if (error) return { error: "The cover image could not be uploaded. Try again.", ...values, articleId };
+    if (error) {
+      return {
+        ...failureResult({
+          operation: "articles.cover.upload",
+          error,
+          message: "The cover image could not be uploaded. Try again.",
+          context: { articleId },
+        }),
+        ...values,
+        articleId,
+      };
+    }
     coverImage = supabase.storage.from(ARTICLE_COVER_BUCKET).getPublicUrl(uploadedObjectPath).data.publicUrl;
   }
 
@@ -117,13 +142,40 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
   if (result.error || !result.data) {
     if (uploadedObjectPath) {
       const { error: cleanupError } = await supabase.storage.from(ARTICLE_COVER_BUCKET).remove([uploadedObjectPath]);
-      if (cleanupError) console.error("Could not clean up an article cover after the article save failed.", cleanupError);
+      if (cleanupError) {
+        reportFailure({
+          operation: "articles.cover.cleanup",
+          error: cleanupError,
+          context: { articleId },
+        });
+      }
     }
-    return {
-      error: "Could not save this article. Check the title is unique and try again.",
-      ...values,
-      articleId,
-    };
+    const message = "Could not save this article. Check the title is unique and try again.";
+    if (result.error && result.error.code !== "23505") {
+      return {
+        ...failureResult({
+          operation: "articles.save",
+          error: result.error,
+          message,
+          context: { articleId },
+        }),
+        ...values,
+        articleId,
+      };
+    }
+    if (!result.error && !result.data) {
+      return {
+        ...failureResult({
+          operation: "articles.save",
+          error: new Error("The article save returned no row."),
+          message,
+          context: { articleId },
+        }),
+        ...values,
+        articleId,
+      };
+    }
+    return { error: message, ...values, articleId };
   }
 
   let cleanupWarning = false;
@@ -132,7 +184,13 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
     if (oldObjectPath) {
       const { error } = await supabase.storage.from(ARTICLE_COVER_BUCKET).remove([oldObjectPath]);
       cleanupWarning = Boolean(error);
-      if (error) console.error("Could not remove the replaced article cover from Supabase Storage.", error);
+      if (error) {
+        reportFailure({
+          operation: "articles.cover.remove-replaced",
+          error,
+          context: { articleId, storagePath: oldObjectPath },
+        });
+      }
     }
   }
 
@@ -145,7 +203,11 @@ export async function saveArticle(_state: EditorState, formData: FormData): Prom
     );
     bodyImageCleanupWarning = reconciled.cleanupIncomplete;
   } catch (error) {
-    console.error("Could not reconcile article body images.", error);
+    reportFailure({
+      operation: "articles.body-images.reconcile",
+      error,
+      context: { articleId: result.data.id },
+    });
     bodyImageCleanupWarning = true;
   }
 
@@ -172,7 +234,7 @@ export type BodyImageUploadErrorCode =
   | "invalid_signature"
   | "upload_failed";
 
-export type BodyImageUploadResult = { error?: string; errorCode?: BodyImageUploadErrorCode; url?: string };
+export type BodyImageUploadResult = { error?: string; errorId?: string; errorCode?: BodyImageUploadErrorCode; url?: string };
 
 export async function uploadArticleBodyImage(formData: FormData): Promise<BodyImageUploadResult> {
   const session = await getVerifiedSession();
@@ -204,7 +266,16 @@ export async function uploadArticleBodyImage(formData: FormData): Promise<BodyIm
     contentType: value.type,
     upsert: false,
   });
-  if (error) return { errorCode: "upload_failed", error: "The image could not be uploaded. Try again." };
+  if (error) {
+    return {
+      ...failureResult({
+        operation: "articles.body-image.upload",
+        error,
+        message: "The image could not be uploaded. Try again.",
+      }),
+      errorCode: "upload_failed",
+    };
+  }
   return { url: supabase.storage.from(ARTICLE_IMAGES_BUCKET).getPublicUrl(objectPath).data.publicUrl };
 }
 

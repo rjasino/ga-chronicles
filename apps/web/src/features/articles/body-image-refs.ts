@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportFailure } from "@/lib/error-logging";
 import { ARTICLE_IMAGES_BUCKET, articleBodyImageStoragePath } from "@/features/articles/body-image";
 
 // Lifecycle helpers for inline body images. The editor stores inline images in the
@@ -43,7 +44,11 @@ export async function reconcileArticleBodyImages(
     .select("storage_path")
     .eq("article_id", articleId);
   if (readError) {
-    console.error("Could not read article body image references.", readError);
+    reportFailure({
+      operation: "articles.body-images.read",
+      error: readError,
+      context: { articleId },
+    });
     return { cleanupIncomplete: true };
   }
 
@@ -55,7 +60,13 @@ export async function reconcileArticleBodyImages(
     const { error: insertError } = await supabase.from("article_body_images").insert(
       toAdd.map((storage_path) => ({ article_id: articleId, storage_path })),
     );
-    if (insertError) console.error("Could not record article body image references.", insertError);
+    if (insertError) {
+      reportFailure({
+        operation: "articles.body-images.record",
+        error: insertError,
+        context: { articleId },
+      });
+    }
   }
 
   if (toRemove.length > 0) {
@@ -65,7 +76,11 @@ export async function reconcileArticleBodyImages(
       .eq("article_id", articleId)
       .in("storage_path", toRemove);
     if (deleteError) {
-      console.error("Could not clear removed article body image references.", deleteError);
+      reportFailure({
+        operation: "articles.body-images.clear",
+        error: deleteError,
+        context: { articleId },
+      });
       return { ...results, cleanupIncomplete: true };
     }
 
@@ -77,7 +92,11 @@ export async function reconcileArticleBodyImages(
       if (checkError || (stillReferenced ?? []).length > 0) continue;
       const { error: removeError } = await supabase.storage.from(ARTICLE_IMAGES_BUCKET).remove([path]);
       if (removeError) {
-        console.error("Could not remove an orphaned body image from storage.", removeError);
+        reportFailure({
+          operation: "articles.body-images.remove-object",
+          error: removeError,
+          context: { articleId, storagePath: path },
+        });
         results.cleanupIncomplete = true;
       }
     }

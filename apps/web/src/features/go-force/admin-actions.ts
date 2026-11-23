@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getVerifiedSession } from "@/lib/supabase/session";
+import { failureResult, reportFailure } from "@/lib/error-logging";
 import { canManageGoForce } from "@/features/go-force/access";
 import { annualGameInputSchema, goForceVotingSettingsSchema, pageVisibilitySchema, resultVisibilitySchema } from "@/features/go-force/admin-schemas";
 import {
@@ -13,7 +14,7 @@ import {
 import { articleImageExtension, validateImageFile } from "@/features/articles/body-image";
 import { GO_FORCE_COVER_BUCKET, GO_FORCE_COVER_MAX_SIZE } from "@/features/go-force/game-covers";
 
-export type AdminActionState = { error?: string; success?: string; gameId?: string; pageVisible?: boolean };
+export type AdminActionState = { error?: string; errorId?: string; success?: string; gameId?: string; pageVisible?: boolean };
 
 export type AnnualGameImportActionState = AdminActionState & {
   addedCount?: number;
@@ -39,9 +40,11 @@ export async function saveGoForcePageVisibility(_state: AdminActionState, formDa
     .select("page_visible")
     .maybeSingle();
   if (error || !data) {
-    if (error) console.error("Go Force page visibility save failed.", { code: error.code, message: error.message });
-    else console.error("Go Force page visibility update returned no settings row.");
-    return { error: "The Go Force page visibility could not be saved." };
+    return failureResult({
+      operation: "go-force.settings.page-visibility",
+      error: error ?? new Error("The page visibility update returned no settings row."),
+      message: "The Go Force page visibility could not be saved.",
+    });
   }
 
   revalidatePath("/", "layout");
@@ -73,9 +76,11 @@ export async function saveGoForceVotingSettings(_state: AdminActionState, formDa
     .select("id")
     .maybeSingle();
   if (error || !data) {
-    if (error) console.error("Go Force voting timer settings save failed.", { code: error.code, message: error.message });
-    else console.error("Go Force voting timer update returned no settings row.");
-    return { error: "The Go Force voting timers could not be saved." };
+    return failureResult({
+      operation: "go-force.settings.voting-timers",
+      error: error ?? new Error("The voting timer update returned no settings row."),
+      message: "The Go Force voting timers could not be saved.",
+    });
   }
 
   revalidateAdminContent();
@@ -116,8 +121,11 @@ export async function saveAnnualGame(_state: AdminActionState, formData: FormDat
       upsert: false,
     });
     if (error) {
-      console.error("Go Force cover upload failed.", { name: error.name, message: error.message });
-      return { error: "The game cover art could not be uploaded. Try again." };
+      return failureResult({
+        operation: "go-force.annual-game.cover-upload",
+        error,
+        message: "The game cover art could not be uploaded. Try again.",
+      });
     }
     coverArtUrl = supabase.storage.from(GO_FORCE_COVER_BUCKET).getPublicUrl(uploadedObjectPath).data.publicUrl;
   }
@@ -139,15 +147,21 @@ export async function saveAnnualGame(_state: AdminActionState, formData: FormDat
   if (result.error || !result.data) {
     if (uploadedObjectPath) {
       const { error: cleanupError } = await supabase.storage.from(GO_FORCE_COVER_BUCKET).remove([uploadedObjectPath]);
-      if (cleanupError) console.error("Could not clean up a Go Force cover after the game save failed.", cleanupError);
+      if (cleanupError) {
+        reportFailure({
+          operation: "go-force.annual-game.cover-cleanup",
+          error: cleanupError,
+          context: { gameId: parsed.data.id, storagePath: uploadedObjectPath },
+        });
+      }
     }
     if (result.error?.code === "23505") return { error: "That game is already on the list for this year." };
-    if (result.error) {
-      console.error("Go Force annual game save failed.", { code: result.error.code, message: result.error.message });
-    } else {
-      console.error("Go Force annual game save returned no saved row.");
-    }
-    return { error: "The game could not be saved." };
+    return failureResult({
+      operation: "go-force.annual-game.save",
+      error: result.error ?? new Error("The annual game save returned no row."),
+      message: "The game could not be saved.",
+      context: { gameId: parsed.data.id },
+    });
   }
 
   revalidateAdminContent();
@@ -181,11 +195,11 @@ export async function importAnnualGames(
     .select("title")
     .eq("goty_year", initialPass.gotyYear);
   if (existingError) {
-    console.error("Go Force annual game import could not read the existing list.", {
-      code: existingError.code,
-      message: existingError.message,
+    return failureResult({
+      operation: "go-force.annual-game.import-lookup",
+      error: existingError,
+      message: "The existing annual games could not be checked. Try again.",
     });
-    return { error: "The existing annual games could not be checked. Try again." };
   }
 
   const existingGames: AnnualGameImportExisting[] = (existingRows ?? []).map((row) => ({
@@ -233,16 +247,19 @@ export async function importAnnualGames(
       };
     }
     if (insertError) {
-      console.error("Go Force annual game import failed.", {
-        code: insertError.code,
-        message: insertError.message,
+      return failureResult({
+        operation: "go-force.annual-game.import",
+        error: insertError,
+        message:
+          "The games could not be saved. Nothing from the batch was saved. Refresh and review the file again.",
       });
-    } else {
-      console.error("Go Force annual game import returned no saved rows.");
     }
-    return {
-      error: "The games could not be saved. Nothing from the batch was saved. Refresh and review the file again.",
-    };
+    return failureResult({
+      operation: "go-force.annual-game.import",
+      error: new Error("The annual game import returned no saved rows."),
+      message:
+        "The games could not be saved. Nothing from the batch was saved. Refresh and review the file again.",
+    });
   }
 
   revalidateAdminContent();
@@ -263,7 +280,14 @@ export async function removeAnnualGame(_state: AdminActionState, formData: FormD
 
   const supabase = await createClient();
   const { error } = await supabase.from("go_force_annual_games").delete().eq("id", gameId);
-  if (error) return { error: "The game could not be removed." };
+  if (error) {
+    return failureResult({
+      operation: "go-force.annual-game.remove",
+      error,
+      message: "The game could not be removed.",
+      context: { gameId },
+    });
+  }
 
   revalidateAdminContent();
   return { success: "Game removed. Started sessions keep their original snapshots." };
@@ -279,11 +303,18 @@ export async function setGoForceResultVisibility(_state: AdminActionState, formD
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the result visibility choice." };
 
   const supabase = await createClient();
-  const { data: goForceSession } = await supabase
+  const { data: goForceSession, error: sessionError } = await supabase
     .from("go_force_sessions")
     .select("status")
     .eq("id", parsed.data.sessionId)
     .maybeSingle();
+  if (sessionError) {
+    reportFailure({
+      operation: "go-force.results.lookup",
+      error: sessionError,
+      context: { sessionId: parsed.data.sessionId },
+    });
+  }
   if (goForceSession?.status !== "complete") {
     return { error: "Only a completed session with a GOTY result can be published." };
   }
@@ -295,7 +326,14 @@ export async function setGoForceResultVisibility(_state: AdminActionState, formD
       published_at: parsed.data.resultsVisible ? new Date().toISOString() : null,
     })
     .eq("session_id", parsed.data.sessionId);
-  if (error) return { error: "The result page visibility could not be saved." };
+  if (error) {
+    return failureResult({
+      operation: "go-force.results.visibility",
+      error,
+      message: "The result page visibility could not be saved.",
+      context: { sessionId: parsed.data.sessionId },
+    });
+  }
 
   revalidateAdminContent();
   revalidatePath(`/go-force/results/${parsed.data.sessionId}`);

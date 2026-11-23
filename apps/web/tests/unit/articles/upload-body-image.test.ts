@@ -69,10 +69,12 @@ describe("uploadArticleBodyImage", () => {
   it("returns upload_failed when storage rejects the file", async () => {
     mocks.upload.mockResolvedValue({ error: { message: "bucket unavailable" } });
     const png = new NodeFile([new Uint8Array(pngSignature)], "a.png", { type: "image/png" });
-    expect(await uploadArticleBodyImage(formWith(png))).toEqual({
+    const result = await uploadArticleBodyImage(formWith(png));
+    expect(result).toMatchObject({
       errorCode: "upload_failed",
       error: "The image could not be uploaded. Try again.",
     });
+    expect(result.errorId).toEqual(expect.any(String));
   });
 
   it("returns the public URL on success", async () => {

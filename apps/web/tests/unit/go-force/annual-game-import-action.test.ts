@@ -256,9 +256,10 @@ describe("importAnnualGames", () => {
 
     await expect(
       importAnnualGames({}, formFor([{ title: "Celeste", gotyYear: 2026 }])),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       error:
         "The games could not be saved. Nothing from the batch was saved. Refresh and review the file again.",
+      errorId: expect.any(String),
     });
 
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
