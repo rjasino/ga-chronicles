@@ -33,6 +33,7 @@ vi.mock("@/features/go-force/wheel-of-names-client", () => ({
 }));
 
 import { commitGoForceSelection, drawGoForceSelection } from "@/features/go-force/game-actions";
+import { WheelOfNamesError } from "@/features/go-force/wheel-of-names-client";
 
 const sessionId = "40000000-0000-4000-8000-000000000001";
 const gameId = "60000000-0000-4000-8000-000000000001";
@@ -70,14 +71,30 @@ describe("drawGoForceSelection", () => {
   it("does not commit or publish when provider response processing fails", async () => {
     actions.spinWheelOfNames.mockRejectedValue(new Error("Maximum call stack size exceeded"));
 
-    await expect(drawGoForceSelection({}, drawForm())).resolves.toEqual({
+    await expect(drawGoForceSelection({}, drawForm())).resolves.toMatchObject({
       error: "Wheel of Names could not complete the spin. Please retry.",
+      errorId: expect.any(String),
     });
 
     expect(actions.createClient).not.toHaveBeenCalled();
     expect(actions.rpc).not.toHaveBeenCalled();
     expect(actions.publishGoForceSessionUpdate).not.toHaveBeenCalled();
     expect(actions.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("returns an error identifier for provider failures and preserves the request reference", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    actions.spinWheelOfNames.mockRejectedValue(
+      new WheelOfNamesError("The provider rejected the spin.", "request-123"),
+    );
+
+    await expect(drawGoForceSelection({}, drawForm())).resolves.toMatchObject({
+      error: "The provider rejected the spin. (Reference request-123)",
+      errorId: expect.any(String),
+    });
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log.mock.calls[0]?.[0]).toContain("go-force.selection.spin");
   });
 
   it("returns the validated provider winner and animation without committing or publishing", async () => {

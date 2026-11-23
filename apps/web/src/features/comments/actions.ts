@@ -3,9 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getVerifiedSession } from "@/lib/supabase/session";
+import { failureResult } from "@/lib/error-logging";
 import { findBlockedWord, launchBlockedWords } from "@/features/comments/blocked-words";
 
-export type CommentState = { error?: string; body?: string; success?: string; resetKey?: string };
+export type CommentState = { error?: string; errorId?: string; body?: string; success?: string; resetKey?: string };
 
 export async function postComment(_state: CommentState, formData: FormData): Promise<CommentState> {
   const body = String(formData.get("body") ?? "");
@@ -20,7 +21,15 @@ export async function postComment(_state: CommentState, formData: FormData): Pro
   if (error) {
     if (error.message.includes("COMMENTS_DISABLED")) return { error: "Comments are turned off right now.", body };
     if (error.message.includes("COMMENT_BLOCKED")) return { error: "This comment includes a blocked term. Edit it and try again.", body };
-    return { error: "Your comment could not be posted. Please try again.", body };
+    return {
+      ...failureResult({
+        operation: "comments.post",
+        error,
+        message: "Your comment could not be posted. Please try again.",
+        context: { articleId },
+      }),
+      body,
+    };
   }
   revalidatePath("/articles/[slug]", "page");
   return { success: "Comment posted.", body: "", resetKey: `${Date.now()}` };
@@ -33,7 +42,14 @@ export async function reportComment(_state: CommentState, formData: FormData): P
   const supabase = await createClient();
   const { error } = await supabase.from("reports").insert({ comment_id: commentId, reporter_id: session.userId });
   if (error?.code === "23505") return { error: "You have already reported this comment." };
-  if (error) return { error: "The report could not be submitted. Please try again." };
+  if (error) {
+    return failureResult({
+      operation: "comments.report",
+      error,
+      message: "The report could not be submitted. Please try again.",
+      context: { commentId },
+    });
+  }
   revalidatePath("/admin/moderation");
   return { success: "Report sent to the moderation team." };
 }

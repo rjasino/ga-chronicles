@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { getWheelOfNamesApiKey } from "@/lib/env";
+import { reportFailure } from "@/lib/error-logging";
 
 export type WheelOfNamesEntry = {
   id: string;
@@ -71,12 +72,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function logSpinFailure(requestId: string, stage: string, error: unknown) {
-  const errorObject = error instanceof Error ? error : null;
-  console.error("[Wheel of Names] spin stage failed", {
-    requestId,
-    stage,
-    errorName: errorObject?.name ?? "UnknownError",
-    stack: errorObject?.stack?.split("\n").slice(1).join("\n"),
+  reportFailure({
+    operation: `wheel-of-names.${stage}`,
+    error,
+    context: { requestId, stage },
   });
 }
 
@@ -161,7 +160,11 @@ export async function spinWheelOfNames(
   try {
     body = await response.json();
   } catch (error) {
-    logSpinFailure(requestId, "response-json", error);
+    // Avoid forwarding parser text: JSON syntax errors may echo provider body content.
+    const parseError = new Error(
+      `Could not parse the provider response (${error instanceof Error ? error.name : "UnknownError"}).`,
+    );
+    logSpinFailure(requestId, "response-json", parseError);
     throw new WheelOfNamesError(
       "Wheel of Names returned an invalid response. Please retry.",
       requestId,

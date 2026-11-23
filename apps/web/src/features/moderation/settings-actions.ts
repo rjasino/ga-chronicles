@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { createClient } from "@/lib/supabase/server";
+import { failureResult, reportFailure } from "@/lib/error-logging";
 
-export type SettingsState = { error?: string; success?: string };
+export type SettingsState = { error?: string; errorId?: string; success?: string };
 
 export async function updateCommentSettings(_state: SettingsState, formData: FormData): Promise<SettingsState> {
   const session = await getVerifiedSession();
@@ -14,7 +15,13 @@ export async function updateCommentSettings(_state: SettingsState, formData: For
   const commentsEnabled = formData.get("comments_enabled") === "on";
   const supabase = await createClient();
   const { error } = await supabase.from("site_settings").update({ comments_enabled: commentsEnabled, moderation_report_threshold: threshold, updated_by: session.userId }).eq("id", true);
-  if (error) return { error: "Settings could not be saved." };
+  if (error) {
+    return failureResult({
+      operation: "moderation.update-settings",
+      error,
+      message: "Settings could not be saved.",
+    });
+  }
   revalidatePath("/admin/settings/comments");
   revalidatePath("/articles/[slug]", "page");
   return { success: "Comment settings saved." };
@@ -22,6 +29,9 @@ export async function updateCommentSettings(_state: SettingsState, formData: For
 
 export async function getCommentSettings() {
   const supabase = await createClient();
-  const { data } = await supabase.from("site_settings").select("comments_enabled,moderation_report_threshold").eq("id", true).single();
+  const { data, error } = await supabase.from("site_settings").select("comments_enabled,moderation_report_threshold").eq("id", true).single();
+  if (error) {
+    reportFailure({ operation: "moderation.read-settings", error });
+  }
   return data ?? { comments_enabled: true, moderation_report_threshold: 3 };
 }

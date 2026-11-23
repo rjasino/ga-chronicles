@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { createClient } from "@/lib/supabase/server";
+import { failureResult } from "@/lib/error-logging";
 
-export type ModerationState = { error?: string; success?: string };
+export type ModerationState = { error?: string; errorId?: string; success?: string };
 
 export async function deleteComment(_state: ModerationState, formData: FormData): Promise<ModerationState> {
   const session = await getVerifiedSession();
@@ -13,7 +14,14 @@ export async function deleteComment(_state: ModerationState, formData: FormData)
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("moderate_comment", { target_comment_id: commentId });
   if (error?.message.includes("THRESHOLD_NOT_MET")) return { error: "The report threshold has not been reached." };
-  if (error) return { error: "This comment could not be removed." };
+  if (error) {
+    return failureResult({
+      operation: "moderation.delete-comment",
+      error,
+      message: "This comment could not be removed.",
+      context: { commentId },
+    });
+  }
   if (!data) return { error: "This comment was already handled." };
   revalidatePath("/admin/moderation");
   revalidatePath("/articles/[slug]", "page");
@@ -27,7 +35,14 @@ export async function removeArticle(_state: ModerationState, formData: FormData)
   const supabase = await createClient();
   const { data: article } = await supabase.from("articles").select("slug").eq("id", articleId).maybeSingle();
   const { data: removed, error } = await supabase.rpc("moderate_article", { target_article_id: articleId });
-  if (error) return { error: "This article could not be removed." };
+  if (error) {
+    return failureResult({
+      operation: "moderation.remove-article",
+      error,
+      message: "This article could not be removed.",
+      context: { articleId },
+    });
+  }
   if (!removed) return { error: "This article was already handled." };
   if (article?.slug) revalidatePath(`/articles/${article.slug}`);
   revalidatePath("/");

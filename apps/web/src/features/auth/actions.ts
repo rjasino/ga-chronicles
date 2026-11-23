@@ -4,10 +4,17 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicEnv, getServiceRoleKey, getSiteUrl } from "@/lib/env";
+import { failureResult, reportFailure } from "@/lib/error-logging";
 import { normalizeUsername } from "@/lib/authz/permissions";
 import { passwordChangeSchema } from "@/features/admin/account-schema";
 
-export type AuthState = { error?: string; success?: string };
+export type AuthState = { error?: string; errorId?: string; success?: string };
+
+/** Supabase Auth 4xx responses are expected user-correctable outcomes. */
+function isUnexpectedAuthError(error: { status?: number } | null | undefined): boolean {
+  if (!error) return false;
+  return typeof error.status !== "number" || error.status >= 500;
+}
 
 function serviceClient() {
   const env = getPublicEnv();
@@ -22,7 +29,14 @@ export async function signInWithCredentials(_state: AuthState, formData: FormDat
   if (!username || !password) return { error: "Username or password is incorrect." };
 
   const admin = serviceClient();
-  const { data: account } = await admin.from("accounts").select("id,status,account_auth_lookup(email)").eq("username", username).maybeSingle();
+  const { data: account, error: lookupError } = await admin.from("accounts").select("id,status,account_auth_lookup(email)").eq("username", username).maybeSingle();
+  if (lookupError) {
+    return failureResult({
+      operation: "auth.sign-in.lookup",
+      error: lookupError,
+      message: "Username or password is incorrect.",
+    });
+  }
   if (account?.status !== "active") return { error: "Username or password is incorrect." };
   const lookup = Array.isArray(account.account_auth_lookup) ? account.account_auth_lookup[0] : account.account_auth_lookup;
   const email = lookup?.email;
@@ -30,7 +44,16 @@ export async function signInWithCredentials(_state: AuthState, formData: FormDat
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: "Username or password is incorrect." };
+  if (error) {
+    if (isUnexpectedAuthError(error)) {
+      return failureResult({
+        operation: "auth.sign-in",
+        error,
+        message: "Username or password is incorrect.",
+      });
+    }
+    return { error: "Username or password is incorrect." };
+  }
   redirect("/");
 }
 
@@ -42,19 +65,51 @@ export async function signUpWithCredentials(_state: AuthState, formData: FormDat
     return { error: "Use a 3–32 character username, a valid email, and a password of at least 12 characters." };
   }
   const admin = serviceClient();
-  const { data: existing } = await admin.from("accounts").select("id").eq("username", username).maybeSingle();
+  const { data: existing, error: existingError } = await admin.from("accounts").select("id").eq("username", username).maybeSingle();
+  if (existingError) {
+    return failureResult({
+      operation: "auth.sign-up.lookup",
+      error: existingError,
+      message: "We could not create the account. Check the details and try again.",
+    });
+  }
   if (existing) return { error: "That username is unavailable. Choose another." };
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
-  if (error || !data.user) return { error: "We could not create the account. Check the details and try again." };
+  if (error) {
+    if (isUnexpectedAuthError(error)) {
+      return failureResult({
+        operation: "auth.sign-up.create-user",
+        error,
+        message: "We could not create the account. Check the details and try again.",
+      });
+    }
+    return { error: "We could not create the account. Check the details and try again." };
+  }
+  if (!data.user) {
+    return failureResult({
+      operation: "auth.sign-up.create-user",
+      error: new Error("Supabase Auth createUser returned no user."),
+      message: "We could not create the account. Check the details and try again.",
+    });
+  }
   const { error: accountError } = await admin.from("accounts").insert({ id: data.user.id, username });
   const { error: lookupError } = accountError ? { error: accountError } : await admin.from("account_auth_lookup").insert({ account_id: data.user.id, email });
   if (accountError || lookupError) {
     await admin.auth.admin.deleteUser(data.user.id);
-    return { error: "We could not create the account. Check the details and try again." };
+    return failureResult({
+      operation: "auth.sign-up.record",
+      error: accountError ?? lookupError,
+      message: "We could not create the account. Check the details and try again.",
+    });
   }
   const supabase = await createClient();
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-  if (signInError) return { error: "Your account is ready. Sign in to continue." };
+  if (signInError) {
+    if (isUnexpectedAuthError(signInError)) {
+      reportFailure({ operation: "auth.sign-up.sign-in", error: signInError });
+    }
+    return { error: "Your account is ready. Sign in to continue." };
+  }
   redirect("/");
 }
 
@@ -70,13 +125,15 @@ export async function startGoogleSignIn() {
     provider: "google",
     options: { redirectTo: `${siteUrl}/auth/callback` },
   });
+  if (error) reportFailure({ operation: "auth.google-sign-in", error });
   if (error || !data.url) redirect("/sign-in?error=oauth");
   redirect(data.url);
 }
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) reportFailure({ operation: "auth.sign-out", error });
   redirect("/");
 }
 
@@ -87,5 +144,15 @@ export async function changePassword(_state: AuthState, formData: FormData): Pro
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Sign in to change your password." };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
-  return error ? { error: "Password could not be updated. Try again." } : { success: "Password updated." };
+  if (error) {
+    if (isUnexpectedAuthError(error)) {
+      return failureResult({
+        operation: "auth.change-password",
+        error,
+        message: "Password could not be updated. Try again.",
+      });
+    }
+    return { error: "Password could not be updated. Try again." };
+  }
+  return { success: "Password updated." };
 }

@@ -4,10 +4,11 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { getPublicEnv, getServiceRoleKey } from "@/lib/env";
+import { failureResult, reportFailure } from "@/lib/error-logging";
 import { accountInputSchema } from "@/features/admin/account-schema";
 import { PAGE_SIZE, roleRank, type PeopleView } from "@/features/admin/people-view";
 
-export type AccountActionState = { error?: string; success?: string };
+export type AccountActionState = { error?: string; errorId?: string; success?: string };
 
 export type ManagedAccountRow = {
   id: string;
@@ -38,6 +39,12 @@ async function isAdmin() {
   return session?.roles.includes("admin") ? session : null;
 }
 
+/** Supabase Auth 4xx responses are expected user-correctable outcomes. */
+function isUnexpectedAuthError(error: { status?: number } | null | undefined): boolean {
+  if (!error) return false;
+  return typeof error.status !== "number" || error.status >= 500;
+}
+
 export async function createInternalAccount(_state: AccountActionState, formData: FormData): Promise<AccountActionState> {
   if (!await isAdmin()) return { error: "Only admins can provision accounts." };
   const parsed = accountInputSchema.safeParse({
@@ -46,17 +53,44 @@ export async function createInternalAccount(_state: AccountActionState, formData
   });
   if (!parsed.success) return { error: "Enter a unique username, valid email, temporary password, and at least one role." };
   const admin = serviceClient();
-  const { data: existing } = await admin.from("accounts").select("id").eq("username", parsed.data.username).maybeSingle();
+  const { data: existing, error: existingError } = await admin.from("accounts").select("id").eq("username", parsed.data.username).maybeSingle();
+  if (existingError) {
+    return failureResult({
+      operation: "admin.accounts.lookup",
+      error: existingError,
+      message: "The account could not be created. Check the username and roles.",
+    });
+  }
   if (existing) return { error: "That username is already in use." };
   if (!parsed.data.password) return { error: "A temporary password is required." };
   const { data, error } = await admin.auth.admin.createUser({ email: parsed.data.email, password: parsed.data.password, email_confirm: true });
-  if (error || !data.user) return { error: "The account could not be created. Check the email and try again." };
+  if (error) {
+    if (isUnexpectedAuthError(error)) {
+      return failureResult({
+        operation: "admin.accounts.create-user",
+        error,
+        message: "The account could not be created. Check the email and try again.",
+      });
+    }
+    return { error: "The account could not be created. Check the email and try again." };
+  }
+  if (!data.user) {
+    return failureResult({
+      operation: "admin.accounts.create-user",
+      error: new Error("Supabase Auth createUser returned no user."),
+      message: "The account could not be created. Check the email and try again.",
+    });
+  }
   const { error: accountError } = await admin.from("accounts").insert({ id: data.user.id, username: parsed.data.username });
   const { error: lookupError } = accountError ? { error: accountError } : await admin.from("account_auth_lookup").insert({ account_id: data.user.id, email: parsed.data.email });
   const { error: roleError } = accountError || lookupError ? { error: accountError ?? lookupError } : await admin.from("account_roles").insert(parsed.data.roles.map((role) => ({ account_id: data.user.id, role })));
   if (accountError || lookupError || roleError) {
     await admin.auth.admin.deleteUser(data.user.id);
-    return { error: "The account could not be created. Check the username and roles." };
+    return failureResult({
+      operation: "admin.accounts.record",
+      error: accountError ?? lookupError ?? roleError,
+      message: "The account could not be created. Check the username and roles.",
+    });
   }
   revalidatePath("/admin/users");
   return { success: "Internal account created. Share the temporary password through a secure channel." };
@@ -68,9 +102,22 @@ export async function assignRoles(_state: AccountActionState, formData: FormData
   const roles = formData.getAll("roles").filter((role): role is "contributor" | "moderator" => role === "contributor" || role === "moderator");
   const admin = serviceClient();
   const { error: deleteError } = await admin.from("account_roles").delete().eq("account_id", accountId).in("role", ["contributor", "moderator"]);
-  if (deleteError) return { error: "Role grants could not be updated." };
+  if (deleteError) {
+    return failureResult({
+      operation: "admin.roles.clear",
+      error: deleteError,
+      message: "Role grants could not be updated.",
+      context: { accountId },
+    });
+  }
   const { error } = roles.length ? await admin.from("account_roles").insert(roles.map((role) => ({ account_id: accountId, role }))) : { error: null };
-  if (error) return { error: "Role grants could not be updated." };
+  if (error) {
+    return failureResult({
+      operation: "admin.roles.assign",
+      error,
+      message: "Role grants could not be updated.",
+    });
+  }
   revalidatePath("/admin/users");
   return { success: "Role grants updated." };
 }
@@ -97,7 +144,11 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
     for (let offset = 0; ; offset += batchSize) {
       const query = admin.from("accounts").select(select);
       applyCriteria(query, view);
-      const { data } = await query.range(offset, offset + batchSize - 1);
+      const { data, error } = await query.range(offset, offset + batchSize - 1);
+      if (error) {
+        reportFailure({ operation: "admin.accounts.list", error });
+        break;
+      }
       const batch = (data ?? []) as unknown as typeof matched;
       matched.push(...batch);
       if (batch.length < batchSize) break;
@@ -127,7 +178,8 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
     }
     const pageIds = decorated.slice(from, from + PAGE_SIZE).map((row) => row.id);
     if (pageIds.length === 0) return { rows: [], total };
-    const { data: full } = await admin.from("accounts").select(fullSelect(view.role, emailEmbed)).in("id", pageIds);
+    const { data: full, error: fullError } = await admin.from("accounts").select(fullSelect(view.role, emailEmbed)).in("id", pageIds);
+    if (fullError) reportFailure({ operation: "admin.accounts.list-page", error: fullError });
     const byId = new Map(((full ?? []) as unknown as RawAccountRow[]).map((row) => [row.id, normalizeRow(row)]));
     const rows = pageIds
       .map((id) => byId.get(id))
@@ -139,7 +191,8 @@ export async function listManagedAccounts(view: PeopleView): Promise<{ rows: Man
   applyCriteria(query, view);
   query.order(view.sort === "created" ? "created_at" : view.sort, { ascending: view.dir === "asc" });
   if (view.sort !== "username") query.order("username", { ascending: true });
-  const { data, count } = await query.range(from, from + PAGE_SIZE - 1);
+  const { data, count, error } = await query.range(from, from + PAGE_SIZE - 1);
+  if (error) reportFailure({ operation: "admin.accounts.list", error });
   return { rows: ((data ?? []) as unknown as RawAccountRow[]).map(normalizeRow), total: count ?? data?.length ?? 0 };
 }
 

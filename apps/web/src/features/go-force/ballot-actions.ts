@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getVerifiedSession } from "@/lib/supabase/session";
-import { goForceErrorMessage } from "@/features/go-force/messages";
+import { reportFailure } from "@/lib/error-logging";
+import { withKnownGoForceFailure } from "@/features/go-force/action-failures";
 import { publishGoForceSessionUpdate } from "@/features/go-force/realtime-broadcast";
 import { parseFinalBallotForm } from "@/features/go-force/schemas";
 
-export type BallotActionState = { error?: string; success?: string };
+export type BallotActionState = { error?: string; errorId?: string; success?: string };
 
 function revalidateSession(sessionId: string) {
   revalidatePath("/go-force");
@@ -29,7 +30,14 @@ export async function submitGoForceFinalBallot(_state: BallotActionState, formDa
     target_game: parsed.data.finalistGameId,
     target_remark: parsed.data.remark,
   });
-  if (error) return { error: goForceErrorMessage(error, "Your final ballot could not be submitted.") };
+  if (error) {
+    return withKnownGoForceFailure(
+      error,
+      "go-force.ballot.submit",
+      "Your final ballot could not be submitted.",
+      { sessionId: parsed.data.sessionId },
+    );
+  }
 
   await publishGoForceSessionUpdate(parsed.data.sessionId);
   revalidateSession(parsed.data.sessionId);
@@ -44,7 +52,11 @@ export async function closeGoForceFinalBallot(_state: BallotActionState, formDat
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("go_force_close_final_ballot", { target_session: sessionId });
-  if (error) return { error: goForceErrorMessage(error, "The final ballot could not be closed.") };
+  if (error) {
+    return withKnownGoForceFailure(error, "go-force.ballot.close", "The final ballot could not be closed.", {
+      sessionId,
+    });
+  }
 
   await publishGoForceSessionUpdate(sessionId);
   revalidateSession(sessionId);
@@ -64,7 +76,14 @@ export async function expireGoForceFinalBallot(sessionId: string): Promise<{ clo
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("go_force_expire_final_ballot", { target_session: sessionId });
-  if (error) return { closed: false };
+  if (error) {
+    reportFailure({
+      operation: "go-force.ballot.expire",
+      error,
+      context: { sessionId },
+    });
+    return { closed: false };
+  }
   if (data?.closed !== true) return { closed: false };
 
   await publishGoForceSessionUpdate(sessionId);
