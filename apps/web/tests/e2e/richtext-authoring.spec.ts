@@ -116,7 +116,7 @@ test("an applied link is styled in the editor before saving", async ({ page }) =
   const link = editor.locator("a", { hasText: "Read" });
   await expect(link).toHaveCount(1);
   await expect(link).toHaveCSS("text-decoration-line", /underline/);
-  await expect(page.locator('input[name="body"]')).toHaveValue(/<a href="https:\/\/example\.com"/);
+  await expect(page.locator('input[name="body"]')).toHaveValue(/<a\b[^>]*\bhref="https:\/\/example\.com"/);
 });
 
 test("bulleted and numbered lists render with visible markers", async ({ page }) => {
@@ -131,12 +131,20 @@ test("bulleted and numbered lists render with visible markers", async ({ page })
   await page.keyboard.type("Second item");
   await page.keyboard.press("Enter");
   await page.keyboard.type("Third item");
-  // The editor keeps a trailing empty paragraph after a list, so select only the three items.
   const selectItems = async () => {
-    await page.keyboard.press("Control+Home");
-    await page.keyboard.press("Shift+ArrowDown");
-    await page.keyboard.press("Shift+ArrowDown");
-    await page.keyboard.press("Shift+End");
+    await editor.evaluate((element) => {
+      const paragraphs = Array.from(element.querySelectorAll("p"));
+      const first = paragraphs.find((paragraph) => paragraph.textContent === "First item");
+      const last = paragraphs.find((paragraph) => paragraph.textContent === "Third item");
+      if (!first || !last) throw new Error("List item paragraphs not found");
+      const range = document.createRange();
+      range.setStart(first, 0);
+      range.setEnd(last, last.childNodes.length);
+      const selection = window.getSelection();
+      if (!selection) throw new Error("Editor selection unavailable");
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
   };
   await selectItems();
   await page.getByRole("button", { name: "Bulleted list" }).click();

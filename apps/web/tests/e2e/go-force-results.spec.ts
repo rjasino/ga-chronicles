@@ -35,7 +35,7 @@ test("results stay hidden or incomplete until a completed session is published",
   await expect(completedRow.getByText("The results page is public.")).toBeVisible();
 
   await viewer.reload();
-  await expect(viewer.getByRole("heading", { name: "E2E Past Winner" })).toBeVisible();
+  await expect(viewer.getByRole("heading", { name: "E2E Past Winner", level: 1 })).toBeVisible();
   await expect(viewer.getByText(/Vote completion: 100%/)).toBeVisible();
   await expect(viewer.getByText("A year-defining world.")).toBeVisible();
   await expect(viewer.getByText("The one I kept replaying.")).toBeVisible();
