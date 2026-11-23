@@ -182,11 +182,11 @@ test("annual-game Server Action forms keep uploads and avoid React encoding warn
     .getByLabel("Upload cover art (optional)")
     .setInputFiles(path.resolve(process.cwd(), "../../docs/neon_ga_logo_2.png"));
   await row.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Game updated.")).toBeVisible();
   await row.getByRole("button", { name: "Edit" }).click();
   await expect(row.getByLabel("Cover art URL (optional)")).toHaveValue(
     /\/storage\/v1\/object\/public\/go-force-covers\//,
   );
-  await expect(page.getByText("Game updated.")).toBeVisible();
 
   await row.getByRole("button", { name: "Cancel" }).click();
   await row.getByRole("button", { name: "Delete" }).click();
