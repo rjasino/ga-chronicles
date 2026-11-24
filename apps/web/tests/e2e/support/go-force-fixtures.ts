@@ -8,6 +8,13 @@ export function goForceServiceClient(): SupabaseClient {
   if (!url || !serviceRoleKey) {
     throw new Error("Local Supabase credentials are required for Go Force browser fixtures.");
   }
+  const parsedUrl = new URL(url);
+  if (
+    !["localhost", "127.0.0.1", "[::1]"].includes(parsedUrl.hostname) ||
+    !["http:", "https:"].includes(parsedUrl.protocol)
+  ) {
+    throw new Error("Go Force browser fixtures may only use a local Supabase URL.");
+  }
   return createClient(url, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
