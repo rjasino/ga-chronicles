@@ -62,6 +62,12 @@ export type SessionParticipant = {
   created_at: string;
 };
 
+export type ActiveGoForceAccountOption = {
+  id: string;
+  username: string;
+  display_name: string | null;
+};
+
 export type SessionGameSnapshot = {
   id: string;
   session_id: string;
@@ -136,6 +142,30 @@ export type SelectionWithVotes = GameSelection & {
   votes: GameVote[];
 };
 
+export type BallotProgress = {
+  eligible: number;
+  submitted: number;
+};
+
+export type ClosedSelectionSummary = {
+  outcome: "advanced" | "eliminated";
+  goVotes: number;
+  noGoVotes: number;
+  abstainVotes: number;
+};
+
+export type RoundAdvancementGame = {
+  gameId: string;
+  title: string;
+  goVotes: number;
+};
+
+export type RoundAdvancementSummary = {
+  roundNumber: GoForceRoundNumber;
+  status: "active" | "complete";
+  games: RoundAdvancementGame[];
+};
+
 export type FinalistWithTitle = {
   gameId: string;
   title: string;
@@ -161,6 +191,9 @@ export type FacilitatorSessionView = SessionView & {
   currentSelection: SelectionWithVotes | null;
   closingSelection: SelectionWithVotes | null;
   remainingGames: SessionGameSnapshot[];
+  selectionProgress: BallotProgress | null;
+  finalBallotProgress: BallotProgress | null;
+  roundAdvancementSummaries: RoundAdvancementSummary[];
   finalists: FinalistWithTitle[];
   ballotSubmittedCount: number;
   roundThreeGoCounts: Record<string, number>;
@@ -173,6 +206,7 @@ export type PlayerSessionView = SessionView & {
   ownVote: GameVote | null;
   ownFinalBallotVote: FinalBallotVote | null;
   goVotesUsedInRound: number;
+  closedSelectionSummaries: Record<string, ClosedSelectionSummary>;
   finalists: FinalistWithTitle[];
 };
 

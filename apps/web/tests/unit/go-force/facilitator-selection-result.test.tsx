@@ -51,4 +51,58 @@ describe("Facilitator selection result", () => {
     expect(screen.getByText("Fixture Studio")).toBeVisible();
     expect(screen.getByText("Fixture Publisher")).toBeVisible();
   });
+
+  it("color-codes labeled go and no-go choices in each participant's closed result", () => {
+    const withVotes = {
+      ...selection,
+      advancement_outcome: "advanced" as const,
+      votes: [
+        {
+          id: "vote-1",
+          selection_id: selection.id,
+          participant_account_id: "participant-1",
+          choice: "go" as const,
+          submitted_at: "2025-01-01T00:00:01.000Z",
+          closed_at: "2025-01-01T00:00:10.000Z",
+          created_at: "2025-01-01T00:00:01.000Z",
+        },
+        {
+          id: "vote-2",
+          selection_id: selection.id,
+          participant_account_id: "participant-2",
+          choice: "no-go" as const,
+          submitted_at: "2025-01-01T00:00:02.000Z",
+          closed_at: "2025-01-01T00:00:10.000Z",
+          created_at: "2025-01-01T00:00:02.000Z",
+        },
+      ],
+    } satisfies SelectionWithVotes;
+
+    render(
+      <VoteBreakdown
+        selection={withVotes}
+        participants={[
+          {
+            session_id: "40000000-0000-4000-8000-000000000001",
+            account_id: "participant-1",
+            display_name_snapshot: "Player One",
+            roster_order: 1,
+            active: true,
+            created_at: "2025-01-01T00:00:00.000Z",
+          },
+          {
+            session_id: "40000000-0000-4000-8000-000000000001",
+            account_id: "participant-2",
+            display_name_snapshot: "Player Two",
+            roster_order: 2,
+            active: true,
+            created_at: "2025-01-01T00:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(document.querySelector('[data-vote-choice="go"]')).toHaveTextContent("Go");
+    expect(document.querySelector('[data-vote-choice="no-go"]')).toHaveTextContent("No-go");
+  });
 });

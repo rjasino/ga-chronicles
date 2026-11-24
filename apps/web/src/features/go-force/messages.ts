@@ -5,6 +5,10 @@ const messages: Record<string, string> = {
   ACTIVE_ACCOUNT_REQUIRED: "Every selected player must have an active account.",
   SESSION_NOT_FOUND: "That Go Force session could not be found.",
   SESSION_NOT_READY: "This session has already started.",
+  SESSION_NOT_ACTIVE: "This session is no longer accepting new players.",
+  ALREADY_PARTICIPANT: "That player is already on this session's roster.",
+  ROSTER_FULL: "This session already has the maximum number of players.",
+  BALLOT_CLOSED: "This ballot is closed to new players.",
   SESSION_NOT_LIVE: "This session is not accepting game votes.",
   EMPTY_ROSTER: "Add at least one player before starting the session.",
   NO_ELIGIBLE_GAMES: "Add at least one eligible game for this GOTY year before starting.",
@@ -26,7 +30,10 @@ const messages: Record<string, string> = {
   REMARK_TOO_LONG: "Keep remarks at 500 characters or fewer.",
 };
 
-export function goForceErrorMessage(error: { message?: string; code?: string } | null, fallback: string): string {
+export function goForceErrorMessage(
+  error: { message?: string; code?: string } | null,
+  fallback: string,
+): string {
   const raw = error?.message ?? "";
   const code = Object.keys(messages).find((candidate) => raw.includes(candidate));
   if (code) return messages[code];

@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { getFacilitatorSessionView } from "@/features/go-force/session-queries";
@@ -22,12 +21,6 @@ export type GameActionState = {
   animationFormat?: "gif" | "webp";
   animationDurationMs?: number;
 };
-
-function revalidateSession(sessionId: string) {
-  revalidatePath(`/admin/go-force/sessions/${sessionId}`);
-  revalidatePath(`/go-force/session/${sessionId}`);
-  revalidatePath("/admin/go-force");
-}
 
 const COMMIT_FALLBACK = "The game could not be committed. Please retry.";
 const VOTE_FALLBACK = "Your vote could not be recorded.";
@@ -168,7 +161,9 @@ export async function commitGoForceSelection(
     } catch {
       // Preserve the original database error as the user-facing result.
     }
-    return withKnownGoForceFailure(error, "go-force.selection.commit", COMMIT_FALLBACK, { sessionId });
+    return withKnownGoForceFailure(error, "go-force.selection.commit", COMMIT_FALLBACK, {
+      sessionId,
+    });
   }
 
   const selectionId = typeof data?.selectionId === "string" ? data.selectionId : undefined;
@@ -183,7 +178,6 @@ export async function commitGoForceSelection(
   }
 
   await publishGoForceSessionUpdate(sessionId);
-  revalidateSession(sessionId);
   return {
     selectionId,
     gameId,
@@ -208,40 +202,40 @@ export async function submitGoForceGameVote(
     .eq("id", parsed.data.selectionId)
     .maybeSingle();
   if (selectionError) {
-    reportFailure({
+    return failureResult({
       operation: "go-force.vote.lookup-selection",
       error: selectionError,
+      message: "The selected game could not be loaded. Please retry.",
       context: { selectionId: parsed.data.selectionId },
     });
   }
-  const { data: round, error: roundError } = selection
-    ? await supabase
-        .from("go_force_rounds")
-        .select("session_id")
-        .eq("id", selection.round_id)
-        .maybeSingle()
-    : { data: null, error: null };
+  if (!selection) return { error: "That game selection could not be found." };
+
+  const { data: round, error: roundError } = await supabase
+    .from("go_force_rounds")
+    .select("session_id")
+    .eq("id", selection.round_id)
+    .maybeSingle();
   if (roundError) {
-    reportFailure({
+    return failureResult({
       operation: "go-force.vote.lookup-round",
       error: roundError,
+      message: "The game session could not be loaded. Please retry.",
       context: { selectionId: parsed.data.selectionId },
     });
   }
   const sessionId = round?.session_id ?? null;
+  if (!sessionId) return { error: "That game selection could not be found." };
 
   const { error } = await supabase.rpc("go_force_submit_game_vote", {
     target_selection: parsed.data.selectionId,
     vote_choice: parsed.data.choice,
   });
   if (error) {
-    return withKnownGoForceFailure(error, "go-force.vote.game", VOTE_FALLBACK);
+    return withKnownGoForceFailure(error, "go-force.vote.game", VOTE_FALLBACK, { sessionId });
   }
 
-  if (sessionId) {
-    await publishGoForceSessionUpdate(sessionId);
-    revalidateSession(sessionId);
-  }
+  await publishGoForceSessionUpdate(sessionId);
   return {
     selectionId: parsed.data.selectionId,
     success: parsed.data.choice === "go" ? "Go vote recorded." : "No-go vote recorded.",
@@ -255,19 +249,50 @@ export async function closeGoForceSelection(
   const session = await getVerifiedSession();
   if (!session) return { error: "Sign in to close this selection." };
   const selectionId = String(formData.get("selectionId") ?? "");
-  const sessionId = String(formData.get("sessionId") ?? "");
-  if (!selectionId || !sessionId) return { error: "Choose a game selection to close." };
+  if (!selectionId) return { error: "Choose a game selection to close." };
 
   const supabase = await createClient();
+  const { data: selection, error: selectionError } = await supabase
+    .from("go_force_selections")
+    .select("round_id")
+    .eq("id", selectionId)
+    .maybeSingle();
+  if (selectionError) {
+    return failureResult({
+      operation: "go-force.selection.close-lookup",
+      error: selectionError,
+      message: "The game selection could not be loaded. Please retry.",
+      context: { selectionId },
+    });
+  }
+  if (!selection) return { error: "That game selection could not be found." };
+
+  const { data: round, error: roundError } = await supabase
+    .from("go_force_rounds")
+    .select("session_id")
+    .eq("id", selection.round_id)
+    .maybeSingle();
+  if (roundError) {
+    return failureResult({
+      operation: "go-force.selection.close-lookup",
+      error: roundError,
+      message: "The game session could not be loaded. Please retry.",
+      context: { selectionId },
+    });
+  }
+  const sessionId = round?.session_id;
+  if (!sessionId) return { error: "That game selection could not be found." };
+
   const { data, error } = await supabase.rpc("go_force_close_selection", {
     target_selection: selectionId,
   });
   if (error) {
-    return withKnownGoForceFailure(error, "go-force.selection.close", CLOSE_FALLBACK, { sessionId });
+    return withKnownGoForceFailure(error, "go-force.selection.close", CLOSE_FALLBACK, {
+      sessionId,
+    });
   }
 
   await publishGoForceSessionUpdate(sessionId);
-  revalidateSession(sessionId);
   const goVotes = typeof data?.goVotes === "number" ? data.goVotes : 0;
   return {
     success:
@@ -298,6 +323,7 @@ export async function expireGoForceSelection(selectionId: string): Promise<{ clo
       error: selectionError,
       context: { selectionId },
     });
+    return { closed: false };
   }
   if (!selection) return { closed: false };
   const { data: round, error: roundError } = await supabase
@@ -311,6 +337,7 @@ export async function expireGoForceSelection(selectionId: string): Promise<{ clo
       error: roundError,
       context: { selectionId },
     });
+    return { closed: false };
   }
   const sessionId = round?.session_id;
   if (!sessionId) return { closed: false };
@@ -329,6 +356,5 @@ export async function expireGoForceSelection(selectionId: string): Promise<{ clo
   if (data?.closed !== true) return { closed: false };
 
   await publishGoForceSessionUpdate(sessionId);
-  revalidateSession(sessionId);
   return { closed: true };
 }

@@ -12,17 +12,26 @@ describe("Button", () => {
 
   it("renders the error purpose with the red fill", () => {
     render(<Button purpose="error">Remove comment</Button>);
-    expect(screen.getByRole("button", { name: "Remove comment" })).toHaveClass("bg-red");
+    expect(screen.getByRole("button", { name: "Remove comment" })).toHaveClass(
+      "bg-red",
+      "text-on-vote-accent",
+    );
   });
 
   it("renders the success purpose with the success fill", () => {
     render(<Button purpose="success">Saved</Button>);
-    expect(screen.getByRole("button", { name: "Saved" })).toHaveClass("bg-success");
+    expect(screen.getByRole("button", { name: "Saved" })).toHaveClass(
+      "bg-success",
+      "text-on-vote-accent",
+    );
   });
 
   it("renders the text purpose without a fill", () => {
     render(<Button purpose="text">Sign out</Button>);
-    expect(screen.getByRole("button", { name: "Sign out" })).toHaveClass("bg-transparent", "underline");
+    expect(screen.getByRole("button", { name: "Sign out" })).toHaveClass(
+      "bg-transparent",
+      "underline",
+    );
   });
 
   it("defaults to the secondary purpose", () => {
@@ -38,7 +47,11 @@ describe("Button", () => {
   });
 
   it("disables itself while pending and keeps its purpose styling", () => {
-    render(<Button purpose="primary" pending>Publishing…</Button>);
+    render(
+      <Button purpose="primary" pending>
+        Publishing…
+      </Button>,
+    );
     const button = screen.getByRole("button", { name: "Publishing…" });
     expect(button).toBeDisabled();
     expect(button).toHaveClass("bg-blue");
@@ -46,7 +59,11 @@ describe("Button", () => {
 
   it("passes native props through", () => {
     const onClick = vi.fn();
-    render(<Button type="submit" name="intent" value="publish" aria-pressed="true" onClick={onClick}>Publish</Button>);
+    render(
+      <Button type="submit" name="intent" value="publish" aria-pressed="true" onClick={onClick}>
+        Publish
+      </Button>,
+    );
     const button = screen.getByRole("button", { name: "Publish" });
     expect(button).toHaveAttribute("type", "submit");
     expect(button).toHaveAttribute("name", "intent");
@@ -57,7 +74,11 @@ describe("Button", () => {
   });
 
   it("renders the toolbar size with the active state for toggles", () => {
-    render(<Button size="toolbar" active aria-pressed="true" aria-label="Bold">B</Button>);
+    render(
+      <Button size="toolbar" active aria-pressed="true" aria-label="Bold">
+        B
+      </Button>,
+    );
     const button = screen.getByRole("button", { name: "Bold" });
     expect(button).toHaveClass("min-h-[34px]", "bg-blue");
   });
@@ -65,7 +86,11 @@ describe("Button", () => {
 
 describe("ButtonLink", () => {
   it("renders an anchor with the purpose classes", () => {
-    render(<ButtonLink purpose="primary" href="/admin/articles/new">Write an article</ButtonLink>);
+    render(
+      <ButtonLink purpose="primary" href="/admin/articles/new">
+        Write an article
+      </ButtonLink>,
+    );
     const link = screen.getByRole("link", { name: "Write an article" });
     expect(link).toHaveAttribute("href", "/admin/articles/new");
     expect(link).toHaveClass("bg-blue", "text-white");

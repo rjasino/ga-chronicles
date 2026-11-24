@@ -3,24 +3,35 @@ import { sessionRosterSchema } from "@/features/go-force/schemas";
 
 const optionalMetadata = (maxLength: number) =>
   z.preprocess(
-    (value) => typeof value === "string" && value.trim() === "" ? null : value,
+    (value) => (typeof value === "string" && value.trim() === "" ? null : value),
     z.string().trim().max(maxLength).nullable().optional(),
   );
 
 const optionalCoverUrl = z.preprocess(
-  (value) => typeof value === "string" && value.trim() === "" ? null : value,
-  z.string().trim().max(2048).url().refine((value) => {
-    try {
-      return ["http:", "https:"].includes(new URL(value).protocol);
-    } catch {
-      return false;
-    }
-  }, "Enter an http or https cover-art URL.").nullable().optional(),
+  (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+  z
+    .string()
+    .trim()
+    .max(2048)
+    .url()
+    .refine((value) => {
+      try {
+        return ["http:", "https:"].includes(new URL(value).protocol);
+      } catch {
+        return false;
+      }
+    }, "Enter an http or https cover-art URL.")
+    .nullable()
+    .optional(),
 );
 
 export const annualGameInputSchema = z.object({
   id: z.uuid().optional(),
-  title: z.string().trim().min(1, "Add a game title.").max(200, "Keep game titles at 200 characters or fewer."),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Add a game title.")
+    .max(200, "Keep game titles at 200 characters or fewer."),
   gotyYear: z.coerce
     .number()
     .int("Enter a whole GOTY year.")
@@ -50,6 +61,11 @@ export const createSessionSchema = z.object({
     .min(2000, "Choose a year from 2000 onward.")
     .max(2100, "Choose a year no later than 2100."),
   participantIds: sessionRosterSchema,
+});
+
+export const addSessionParticipantSchema = z.object({
+  sessionId: z.uuid("Choose a valid Go Force session."),
+  accountId: z.uuid("Choose a valid player to add."),
 });
 
 export const resultVisibilitySchema = z.object({
