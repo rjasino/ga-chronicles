@@ -35,7 +35,10 @@ export type GoForcePageSettings = {
   id: boolean;
   page_visible: boolean;
   round_voting_seconds: number;
+  round_voting_timed: boolean;
   final_ballot_seconds: number;
+  final_ballot_timed: boolean;
+  minimum_round_three_go_voters: number;
   updated_by: string | null;
   updated_at: string;
 };
@@ -166,6 +169,14 @@ export type RoundAdvancementSummary = {
   games: RoundAdvancementGame[];
 };
 
+export type GoVoteQuotaUsage = {
+  roundNumber: GoForceRoundNumber;
+  limit: number;
+  used: number;
+  remaining: number;
+  started: boolean;
+};
+
 export type FinalistWithTitle = {
   gameId: string;
   title: string;
@@ -197,6 +208,7 @@ export type FacilitatorSessionView = SessionView & {
   finalists: FinalistWithTitle[];
   ballotSubmittedCount: number;
   roundThreeGoCounts: Record<string, number>;
+  minimumRoundThreeGoVoters: number;
 };
 
 export type PlayerSessionView = SessionView & {
@@ -206,6 +218,8 @@ export type PlayerSessionView = SessionView & {
   ownVote: GameVote | null;
   ownFinalBallotVote: FinalBallotVote | null;
   goVotesUsedInRound: number;
+  goVoteQuotas: GoVoteQuotaUsage[];
+  roundAdvancementSummaries: RoundAdvancementSummary[];
   closedSelectionSummaries: Record<string, ClosedSelectionSummary>;
   finalists: FinalistWithTitle[];
 };

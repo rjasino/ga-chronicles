@@ -245,11 +245,13 @@ export function VoteBreakdown({
 
 function RoundThreeGoStatus({ data }: { data: FacilitatorSessionView }) {
   if (data.currentRound?.round_number !== 3) return null;
+  const goVoterCount = Object.keys(data.roundThreeGoCounts).length;
   return (
     <div className="go-force-card border border-line bg-paper p-5">
       <h3 className="m-0 font-display text-[1.2rem] text-blue">Round 3 go check</h3>
       <p className="m-0 mt-1 text-muted">
-        Every player must spend exactly one go before the final ballot.
+        {goVoterCount} of {data.minimumRoundThreeGoVoters} required players have cast a Go. Other
+        rostered players do not need to vote Go for the session to continue.
       </p>
       <ul className="m-3 grid list-none gap-1 p-0">
         {data.participants
@@ -258,7 +260,7 @@ function RoundThreeGoStatus({ data }: { data: FacilitatorSessionView }) {
             <li key={participant.account_id} className="flex justify-between gap-3">
               <span>{participant.display_name_snapshot}</span>
               <strong>
-                {data.roundThreeGoCounts[participant.account_id] ? "Used" : "Not used"}
+                {data.roundThreeGoCounts[participant.account_id] ? "Go used" : "No Go"}
               </strong>
             </li>
           ))}
@@ -484,8 +486,8 @@ export function FacilitatorSession({
         <section className="go-force-card border border-line bg-paper p-5">
           <h2 className="m-0 font-display text-[1.7rem] text-blue">Session incomplete</h2>
           <p>
-            At least 80% of expected votes and every player&apos;s Round 3 go are required. No GOTY
-            result was published.
+            The configured Round 3 Go-voter minimum or a final-ballot completion requirement was not
+            met. No GOTY result was published.
           </p>
           <Link className="text-link" href="/admin/go-force">
             Return to Go Force admin

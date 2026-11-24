@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { reportFailure } from "@/lib/error-logging";
 import { finalistVoteTotals } from "@/features/go-force/rules";
+import { buildPlayerGoVoteQuotas } from "@/features/go-force/player-go-vote-quotas";
 import { buildRoundAdvancementSummaries } from "@/features/go-force/round-advancement-summary";
 import type {
   ActiveGoForceAccountOption,
@@ -263,6 +264,17 @@ export async function getFacilitatorSessionView(
           return counts;
         }, {})
     : {};
+  let minimumRoundThreeGoVoters = 2;
+  if (currentRound?.round_number === 3) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("go_force_page_settings")
+      .select("minimum_round_three_go_voters")
+      .eq("id", true)
+      .maybeSingle();
+    if (error) throw new Error("Could not load the Round 3 Go-vote minimum.", { cause: error });
+    minimumRoundThreeGoVoters = data?.minimum_round_three_go_voters ?? 2;
+  }
 
   let selectionProgress: FacilitatorSessionView["selectionProgress"] = null;
   let finalBallotProgress: FacilitatorSessionView["finalBallotProgress"] = null;
@@ -296,6 +308,7 @@ export async function getFacilitatorSessionView(
     finalists: finalistsFrom(view.selections, view.rounds, view.finalBallotVotes),
     ballotSubmittedCount: finalBallotProgress?.submitted ?? 0,
     roundThreeGoCounts,
+    minimumRoundThreeGoVoters,
   };
 }
 
@@ -318,27 +331,20 @@ export async function getPlayerSessionView(
   const ownVote = currentSelection
     ? (currentSelection.votes.find((vote) => vote.participant_account_id === userId) ?? null)
     : null;
-  const lastClosedSelection = currentRound
-    ? (view.selections
-        .filter(
-          (selection) =>
-            selection.round_id === currentRound.id && selection.voting_closed_at !== null,
-        )
-        .at(-1) ?? null)
-    : null;
   const closedSelectionSummaries: PlayerSessionView["closedSelectionSummaries"] = {};
-  if (participant && lastClosedSelection) {
+  if (participant && view.selections.some((selection) => selection.voting_closed_at !== null)) {
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc("go_force_closed_selection_summary", {
-      target_selection: lastClosedSelection.id,
+    const { data, error } = await supabase.rpc("go_force_closed_selection_summaries", {
+      target_session: sessionId,
     });
     if (error) {
-      throw new Error("Could not load the closed game result summary.", { cause: error });
+      throw new Error("Could not load closed game result summaries.", { cause: error });
     }
-    if (data)
-      closedSelectionSummaries[lastClosedSelection.id] = data as NonNullable<
-        PlayerSessionView["closedSelectionSummaries"][string]
-      >;
+    for (const { selectionId, ...summary } of (data ?? []) as Array<
+      NonNullable<PlayerSessionView["closedSelectionSummaries"][string]> & { selectionId: string }
+    >) {
+      closedSelectionSummaries[selectionId] = summary;
+    }
   }
   const goVotesUsedInRound = currentRound
     ? view.selections
@@ -359,6 +365,12 @@ export async function getPlayerSessionView(
     ownFinalBallotVote:
       view.finalBallotVotes.find((vote) => vote.participant_account_id === userId) ?? null,
     goVotesUsedInRound,
+    goVoteQuotas: participant ? buildPlayerGoVoteQuotas(userId, view.rounds, view.selections) : [],
+    roundAdvancementSummaries: buildRoundAdvancementSummaries(
+      view.rounds,
+      view.selections,
+      closedSelectionSummaries,
+    ),
     closedSelectionSummaries,
     finalists: finalistsFrom(view.selections, view.rounds, view.finalBallotVotes),
   };

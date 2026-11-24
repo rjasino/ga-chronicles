@@ -1,5 +1,5 @@
 begin;
-select plan(35);
+select plan(37);
 
 create temporary table final_close_result (payload jsonb);
 grant insert, select on pg_temp.final_close_result to authenticated;
@@ -27,6 +27,12 @@ select has_function(
   'go_force_closed_selection_summary',
   array['uuid'],
   'closed game-ballot summary aggregate exists'
+);
+select has_function(
+  'public',
+  'go_force_closed_selection_summaries',
+  array['uuid'],
+  'closed game-ballot summaries aggregate exists'
 );
 select has_function(
   'public',
@@ -215,6 +221,11 @@ select is(
   public.go_force_closed_selection_summary('43000000-0000-4000-8000-000000000102')->>'abstainVotes',
   '1',
   'the closed game aggregate reports eligible abstentions'
+);
+select is(
+  jsonb_array_length(public.go_force_closed_selection_summaries('40000000-0000-4000-8000-000000000101')),
+  2,
+  'players can load aggregate results for every closed selection in the session'
 );
 
 reset role;

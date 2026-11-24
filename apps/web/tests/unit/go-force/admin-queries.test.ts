@@ -51,7 +51,10 @@ describe("Go Force admin queries", () => {
       id: true,
       page_visible: true,
       round_voting_seconds: 10,
+      round_voting_timed: true,
       final_ballot_seconds: 10,
+      final_ballot_timed: true,
+      minimum_round_three_go_voters: 2,
       updated_by: null,
       updated_at: "2026-01-01T00:00:00Z",
     };

@@ -64,6 +64,8 @@ const playerView = {
   ownVote: null,
   ownFinalBallotVote: null,
   goVotesUsedInRound: 0,
+  goVoteQuotas: [],
+  roundAdvancementSummaries: [],
   closedSelectionSummaries: {},
   finalists: [],
 } satisfies PlayerSessionView;
@@ -96,6 +98,42 @@ describe("late player session controls", () => {
       screen.getByRole("heading", { name: "You are not on this session roster" }),
     ).toBeVisible();
     expect(screen.getByText(/ask the game master or an admin to add you/i)).toBeVisible();
+  });
+
+  it("shows every round's quota and the advancement summary to a player", () => {
+    const activePlayerView = {
+      ...playerView,
+      participant: {
+        session_id: sessionId,
+        account_id: readerId,
+        display_name_snapshot: "Local Reader",
+        roster_order: 1,
+        active: true,
+        created_at: now,
+      },
+      goVoteQuotas: [
+        { roundNumber: 1 as const, limit: 3, used: 2, remaining: 1, started: true },
+        { roundNumber: 2 as const, limit: 2, used: 0, remaining: 2, started: false },
+        { roundNumber: 3 as const, limit: 1, used: 0, remaining: 1, started: false },
+      ],
+      roundAdvancementSummaries: [
+        {
+          roundNumber: 1 as const,
+          status: "complete" as const,
+          games: [{ gameId: "game-1", title: "Advanced Game", goVotes: 2 }],
+        },
+      ],
+    } satisfies PlayerSessionView;
+
+    render(<PlayerSession data={activePlayerView} />);
+
+    expect(screen.getByRole("region", { name: "Go-vote quota by round" })).toHaveTextContent(
+      "2 of 3 used · 1 remaining",
+    );
+    expect(screen.getByText(/Round 2/)).toHaveTextContent("Not started");
+    expect(screen.getByText(/Round 3/)).toHaveTextContent("Not started");
+    expect(screen.getByRole("heading", { name: "Round 1 · Confirmed" })).toBeVisible();
+    expect(screen.getByText("Advanced Game")).toBeVisible();
   });
 
   it("color-codes the player's own submitted choice on their active vote screen", () => {

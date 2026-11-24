@@ -51,10 +51,16 @@ function VisibilityForm({ visible }: { visible: boolean }) {
 
 function VotingSettingsForm({
   roundVotingSeconds,
+  roundVotingTimed,
   finalBallotSeconds,
+  finalBallotTimed,
+  minimumRoundThreeGoVoters,
 }: {
   roundVotingSeconds: number;
+  roundVotingTimed: boolean;
   finalBallotSeconds: number;
+  finalBallotTimed: boolean;
+  minimumRoundThreeGoVoters: number;
 }) {
   const [state, action, pending] = useActionState(
     saveGoForceVotingSettings,
@@ -63,6 +69,11 @@ function VotingSettingsForm({
   return (
     <form className="form-stack settings-form" action={action}>
       <div className="grid gap-3 sm:grid-cols-2">
+        <Checkbox
+          name="roundVotingTimed"
+          defaultChecked={roundVotingTimed}
+          label="Use a timer for round votes"
+        />
         <TextField
           label="Round vote duration (seconds)"
           name="roundVotingSeconds"
@@ -71,6 +82,11 @@ function VotingSettingsForm({
           max={600}
           defaultValue={roundVotingSeconds}
           required
+        />
+        <Checkbox
+          name="finalBallotTimed"
+          defaultChecked={finalBallotTimed}
+          label="Use a timer for the final ballot"
         />
         <TextField
           label="Final ballot duration (seconds)"
@@ -81,10 +97,20 @@ function VotingSettingsForm({
           defaultValue={finalBallotSeconds}
           required
         />
+        <TextField
+          label="Minimum Round 3 Go voters"
+          name="minimumRoundThreeGoVoters"
+          type="number"
+          min={1}
+          max={64}
+          defaultValue={minimumRoundThreeGoVoters}
+          required
+        />
       </div>
       <p className="m-0 text-[.88rem] text-muted">
-        Both timers default to 10 seconds. Choose 5–600 seconds; changing a timer does not alter a
-        vote already in progress.
+        Timers default to 10 seconds. Choose 5–600 seconds. With a timer disabled, only the
+        facilitator can close that vote; changes do not alter votes already in progress. Round 3
+        needs Go votes from at least the configured number of players (1–64).
       </p>
       {state.error && <Message tone="error">{state.error}</Message>}
       {state.success && <Message tone="success">{state.success}</Message>}
@@ -477,7 +503,7 @@ export function GoForceAdminControls({ data }: { data: GoForceAdminData }) {
             aria-labelledby="go-force-timers"
           >
             <h2 id="go-force-timers" className="m-0 font-display text-[1.5rem] text-blue">
-              Voting timers
+              Voting and quorum settings
             </h2>
             <p className="m-0 mt-1 text-muted">
               Round votes and the final ballot have separate countdowns. Active votes keep their
@@ -485,7 +511,10 @@ export function GoForceAdminControls({ data }: { data: GoForceAdminData }) {
             </p>
             <VotingSettingsForm
               roundVotingSeconds={data.settings.round_voting_seconds}
+              roundVotingTimed={data.settings.round_voting_timed}
               finalBallotSeconds={data.settings.final_ballot_seconds}
+              finalBallotTimed={data.settings.final_ballot_timed}
+              minimumRoundThreeGoVoters={data.settings.minimum_round_three_go_voters}
             />
           </section>
         </div>

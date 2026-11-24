@@ -55,7 +55,7 @@ describe("Go Force advancement and round completion", () => {
   it("forfeits unused go allowances and opens the next round", () => {
     expect(roundCompletionStatus(1, 3, 0)).toEqual({ status: "live", nextRound: 2 });
     expect(roundCompletionStatus(2, 2, 0)).toEqual({ status: "live", nextRound: 3 });
-    expect(roundCompletionStatus(3, 1, 0)).toEqual({ status: "final_ballot", nextRound: null });
+    expect(roundCompletionStatus(3, 1, 2)).toEqual({ status: "final_ballot", nextRound: null });
   });
 
   it("stops with no result when no game advances from round 1 or 2", () => {
@@ -63,8 +63,15 @@ describe("Go Force advancement and round completion", () => {
     expect(roundCompletionStatus(2, 0, 0)).toEqual({ status: "stopped_no_finalists", nextRound: null });
   });
 
-  it("requires every player to spend the round 3 go before the final ballot", () => {
-    expect(roundCompletionStatus(3, 2, 1)).toEqual({ status: "incomplete_vote_threshold", nextRound: null });
+  it("requires the configured minimum number of round 3 go voters", () => {
+    expect(roundCompletionStatus(3, 2, 1)).toEqual({
+      status: "incomplete_vote_threshold",
+      nextRound: null,
+    });
+    expect(roundCompletionStatus(3, 2, 2, 3)).toEqual({
+      status: "incomplete_vote_threshold",
+      nextRound: null,
+    });
   });
 });
 

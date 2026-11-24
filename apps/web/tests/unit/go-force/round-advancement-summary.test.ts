@@ -88,7 +88,7 @@ function makeSelection({
 }
 
 describe("buildRoundAdvancementSummaries", () => {
-  it("returns the latest completed round and current provisional round with accurate submitted go totals", () => {
+  it("returns completed and current provisional rounds with accurate submitted go totals", () => {
     const roundOne = makeRound(roundOneId, 1, "complete");
     const roundTwo = makeRound(roundTwoId, 2, "active");
     const selected = makeSelection({
@@ -163,6 +163,20 @@ describe("buildRoundAdvancementSummaries", () => {
 
     expect(buildRoundAdvancementSummaries([round], [selection])).toEqual([
       { roundNumber: 1, status: "complete", games: [] },
+    ]);
+  });
+
+  it("keeps summaries for every completed round and the active round", () => {
+    const rounds = [
+      makeRound(roundOneId, 1, "complete"),
+      makeRound(roundTwoId, 2, "complete"),
+      makeRound("42000000-0000-4000-8000-000000000103", 3, "active"),
+    ];
+
+    expect(buildRoundAdvancementSummaries(rounds, [])).toEqual([
+      { roundNumber: 1, status: "complete", games: [] },
+      { roundNumber: 2, status: "complete", games: [] },
+      { roundNumber: 3, status: "active", games: [] },
     ]);
   });
 });

@@ -322,7 +322,15 @@ describe("authorized session aggregates", () => {
   it("loads a closed game aggregate for the player without exposing peer vote rows", async () => {
     const fixture = queryFixture({ selectionClosed: true });
     mocks.rpc.mockResolvedValue({
-      data: { outcome: "advanced", goVotes: 2, noGoVotes: 1, abstainVotes: 0 },
+      data: [
+        {
+          selectionId: fixture.ids.selectionId,
+          outcome: "advanced",
+          goVotes: 2,
+          noGoVotes: 1,
+          abstainVotes: 0,
+        },
+      ],
       error: null,
     });
     mocks.createClient.mockResolvedValue(queryClient(fixture.rowsByTable));
@@ -338,9 +346,15 @@ describe("authorized session aggregates", () => {
       noGoVotes: 1,
       abstainVotes: 0,
     });
-    expect(mocks.rpc).toHaveBeenCalledWith("go_force_closed_selection_summary", {
-      target_selection: fixture.ids.selectionId,
+    expect(mocks.rpc).toHaveBeenCalledWith("go_force_closed_selection_summaries", {
+      target_session: fixture.ids.sessionId,
     });
     expect(view?.selections[0]?.votes).toHaveLength(1);
+    expect(view?.roundAdvancementSummaries[0]?.games[0]?.goVotes).toBe(2);
+    expect(view?.goVoteQuotas).toEqual([
+      { roundNumber: 1, limit: 3, used: 1, remaining: 2, started: true },
+      { roundNumber: 2, limit: 2, used: 0, remaining: 2, started: false },
+      { roundNumber: 3, limit: 1, used: 0, remaining: 1, started: false },
+    ]);
   });
 });

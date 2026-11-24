@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { GoForceLiveRefresh } from "@/components/go-force/live-refresh";
 import { GameDetailsCard } from "@/components/go-force/game-details-card";
+import { RoundAdvancementCard } from "@/components/go-force/round-advancement-card";
 import { VotingCountdown } from "@/components/go-force/voting-countdown";
 import { VoteChoiceLabel } from "@/components/go-force/vote-choice-label";
 import { useGoForceLocalMutation } from "@/components/go-force/use-local-mutation";
@@ -15,8 +16,37 @@ import {
   submitGoForceFinalBallot,
   type BallotActionState,
 } from "@/features/go-force/ballot-actions";
-import { goLimitForRound, remainingGoVotes } from "@/features/go-force/rules";
+import { remainingGoVotes } from "@/features/go-force/rules";
 import type { PlayerSessionView } from "@/features/go-force/types";
+
+function GoVoteQuotaCard({ data }: { data: PlayerSessionView }) {
+  if (data.goVoteQuotas.length === 0) return null;
+
+  return (
+    <section
+      className="go-force-card border border-line bg-paper p-5"
+      aria-label="Go-vote quota by round"
+    >
+      <h2 className="m-0 font-display text-[1.3rem] text-blue">Go votes by round</h2>
+      <ul className="m-3 grid list-none gap-2 p-0">
+        {data.goVoteQuotas.map((quota) => (
+          <li
+            key={quota.roundNumber}
+            className="flex flex-wrap justify-between gap-2 border-b border-line pb-2"
+          >
+            <span>
+              Round {quota.roundNumber}
+              {!quota.started && <span className="text-muted"> · Not started</span>}
+            </span>
+            <span>
+              {quota.used} of {quota.limit} used · {quota.remaining} remaining
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 function VoteForm({
   selectionId,
@@ -168,6 +198,8 @@ export function PlayerSession({ data }: { data: PlayerSessionView }) {
         <p className="m-0 font-semibold">Playing as {participant.display_name_snapshot}</p>
         <GoForceLiveRefresh sessionId={session.id} />
       </div>
+      <GoVoteQuotaCard data={data} />
+      <RoundAdvancementCard summaries={data.roundAdvancementSummaries} />
 
       {session.status === "ready" && (
         <section className="go-force-card border border-line bg-paper p-5">
@@ -185,11 +217,7 @@ export function PlayerSession({ data }: { data: PlayerSessionView }) {
             Round {currentRound.round_number} of 3
           </p>
           <h2 className="m-0 font-display text-[1.7rem] text-blue">Your vote screen</h2>
-          <p className="mt-2 text-muted">
-            This round allows {goLimitForRound(currentRound.round_number)} go vote
-            {goLimitForRound(currentRound.round_number) === 1 ? "" : "s"} per player. No-go votes
-            are unlimited.
-          </p>
+          <p className="mt-2 text-muted">No-go votes are unlimited.</p>
 
           {currentSelection ? (
             <div className="go-force-card mt-4 border border-line bg-paper p-5">
@@ -324,8 +352,8 @@ export function PlayerSession({ data }: { data: PlayerSessionView }) {
             This session did not meet completion requirements
           </h2>
           <p>
-            At least 80% of expected votes and every player&apos;s Round 3 go are required. No GOTY
-            result was published for this session.
+            The configured Round 3 Go-voter minimum or a final-ballot completion requirement was not
+            met. No GOTY result was published for this session.
           </p>
         </section>
       )}

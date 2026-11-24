@@ -1,4 +1,5 @@
 import type {
+  ClosedSelectionSummary,
   GoForceRound,
   RoundAdvancementSummary,
   SelectionWithVotes,
@@ -7,17 +8,11 @@ import type {
 export function buildRoundAdvancementSummaries(
   rounds: GoForceRound[],
   selections: SelectionWithVotes[],
+  closedSelectionSummaries?: Record<string, ClosedSelectionSummary>,
 ): RoundAdvancementSummary[] {
-  const activeRound = rounds.find((round) => round.status === "active") ?? null;
-  const latestCompletedRound =
-    [...rounds]
-      .filter((round) => round.status === "complete")
-      .sort((left, right) => right.round_number - left.round_number)[0] ?? null;
-
-  const displayedRounds = [
-    ...(latestCompletedRound ? [latestCompletedRound] : []),
-    ...(activeRound && activeRound.id !== latestCompletedRound?.id ? [activeRound] : []),
-  ];
+  const displayedRounds = rounds
+    .filter((round) => round.status === "complete" || round.status === "active")
+    .sort((left, right) => left.round_number - right.round_number);
 
   return displayedRounds.map((round) => {
     const roundSelections = selections
@@ -36,9 +31,10 @@ export function buildRoundAdvancementSummaries(
         .map((selection) => ({
           gameId: selection.session_game_id,
           title: selection.game?.title_snapshot ?? "Unknown game",
-          goVotes: selection.votes.filter(
-            (vote) => vote.choice === "go" && vote.submitted_at !== null,
-          ).length,
+          goVotes:
+            closedSelectionSummaries?.[selection.id]?.goVotes ??
+            selection.votes.filter((vote) => vote.choice === "go" && vote.submitted_at !== null)
+              .length,
         }))
         .filter((game) => game.goVotes > 0),
     };

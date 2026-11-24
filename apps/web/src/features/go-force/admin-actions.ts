@@ -60,16 +60,27 @@ export async function saveGoForceVotingSettings(_state: AdminActionState, formDa
   if (!session || !canManageGoForce(session.roles)) return { error: "Only an admin can change Go Force voting timers." };
   const parsed = goForceVotingSettingsSchema.safeParse({
     roundVotingSeconds: formData.get("roundVotingSeconds"),
+    roundVotingTimed: formData.get("roundVotingTimed") === "on",
     finalBallotSeconds: formData.get("finalBallotSeconds"),
+    finalBallotTimed: formData.get("finalBallotTimed") === "on",
+    minimumRoundThreeGoVoters: formData.get("minimumRoundThreeGoVoters"),
   });
-  if (!parsed.success) return { error: "Set each voting timer between 5 and 600 seconds." };
+  if (!parsed.success) {
+    return {
+      error:
+        "Set each timer between 5 and 600 seconds and the Round 3 Go minimum between 1 and 64 players.",
+    };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("go_force_page_settings")
     .update({
       round_voting_seconds: parsed.data.roundVotingSeconds,
+      round_voting_timed: parsed.data.roundVotingTimed,
       final_ballot_seconds: parsed.data.finalBallotSeconds,
+      final_ballot_timed: parsed.data.finalBallotTimed,
+      minimum_round_three_go_voters: parsed.data.minimumRoundThreeGoVoters,
       updated_by: session.userId,
     })
     .eq("id", true)

@@ -47,7 +47,10 @@ export const annualGameInputSchema = z.object({
 
 export const goForceVotingSettingsSchema = z.object({
   roundVotingSeconds: z.coerce.number().int().min(5).max(600),
+  roundVotingTimed: z.boolean(),
   finalBallotSeconds: z.coerce.number().int().min(5).max(600),
+  finalBallotTimed: z.boolean(),
+  minimumRoundThreeGoVoters: z.coerce.number().int().min(1).max(64),
 });
 
 export const pageVisibilitySchema = z.object({
