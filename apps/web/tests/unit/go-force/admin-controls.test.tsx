@@ -34,7 +34,10 @@ const data = {
     id: true,
     page_visible: true,
     round_voting_seconds: 10,
+    round_voting_timed: true,
     final_ballot_seconds: 10,
+    final_ballot_timed: true,
+    minimum_round_three_go_voters: 2,
     updated_by: null,
     updated_at: "2025-01-01T00:00:00.000Z",
   },
@@ -77,13 +80,16 @@ describe("Go Force admin tabs and annual games table", () => {
     vi.clearAllMocks();
   });
 
-  it("groups page visibility and timers and supports arrow-key tab navigation", () => {
+  it("shows voting controls and supports arrow-key tab navigation", () => {
     render(<GoForceAdminControls data={data} />);
 
     const settingsTab = screen.getByRole("tab", { name: "Page & timers" });
     expect(settingsTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByLabelText("Show the public Go Force page")).toBeInTheDocument();
     expect(screen.getByLabelText("Round vote duration (seconds)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Use a timer for round votes")).toBeChecked();
+    expect(screen.getByLabelText("Use a timer for the final ballot")).toBeChecked();
+    expect(screen.getByLabelText("Minimum Round 3 Go voters")).toHaveValue(2);
 
     fireEvent.keyDown(settingsTab, { key: "ArrowRight" });
     expect(screen.getByRole("tab", { name: "Annual games" })).toHaveAttribute(
@@ -198,9 +204,7 @@ describe("Go Force annual game JSON import", () => {
 
     expect(await screen.findByText("Duplicates will be skipped:")).toBeInTheDocument();
     expect(screen.getByText(/GOTY 2025 · 1 to add · 2 to skip/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/is already in the annual list for this year/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/is already in the annual list for this year/)).toBeInTheDocument();
     expect(screen.getByText(/repeats an earlier title in this file/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirm import" })).toBeEnabled();
   });
@@ -250,9 +254,7 @@ describe("Go Force annual game JSON import", () => {
     expect(await screen.findByText(/1 to add · 1 to skip/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm import" }));
 
-    expect(
-      await screen.findByText("Added 1 game. Skipped 1 duplicate game."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Added 1 game. Skipped 1 duplicate game.")).toBeInTheDocument();
     expect(actions.importAnnualGames).toHaveBeenCalledTimes(1);
     const submitted = actions.importAnnualGames.mock.calls[0]?.[1] as FormData;
     expect(submitted.get("json")).toBe(JSON.stringify(records));

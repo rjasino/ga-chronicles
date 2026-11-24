@@ -35,7 +35,10 @@ export type GoForcePageSettings = {
   id: boolean;
   page_visible: boolean;
   round_voting_seconds: number;
+  round_voting_timed: boolean;
   final_ballot_seconds: number;
+  final_ballot_timed: boolean;
+  minimum_round_three_go_voters: number;
   updated_by: string | null;
   updated_at: string;
 };
@@ -60,6 +63,12 @@ export type SessionParticipant = {
   roster_order: number;
   active: boolean;
   created_at: string;
+};
+
+export type ActiveGoForceAccountOption = {
+  id: string;
+  username: string;
+  display_name: string | null;
 };
 
 export type SessionGameSnapshot = {
@@ -136,6 +145,38 @@ export type SelectionWithVotes = GameSelection & {
   votes: GameVote[];
 };
 
+export type BallotProgress = {
+  eligible: number;
+  submitted: number;
+};
+
+export type ClosedSelectionSummary = {
+  outcome: "advanced" | "eliminated";
+  goVotes: number;
+  noGoVotes: number;
+  abstainVotes: number;
+};
+
+export type RoundAdvancementGame = {
+  gameId: string;
+  title: string;
+  goVotes: number;
+};
+
+export type RoundAdvancementSummary = {
+  roundNumber: GoForceRoundNumber;
+  status: "active" | "complete";
+  games: RoundAdvancementGame[];
+};
+
+export type GoVoteQuotaUsage = {
+  roundNumber: GoForceRoundNumber;
+  limit: number;
+  used: number;
+  remaining: number;
+  started: boolean;
+};
+
 export type FinalistWithTitle = {
   gameId: string;
   title: string;
@@ -161,9 +202,13 @@ export type FacilitatorSessionView = SessionView & {
   currentSelection: SelectionWithVotes | null;
   closingSelection: SelectionWithVotes | null;
   remainingGames: SessionGameSnapshot[];
+  selectionProgress: BallotProgress | null;
+  finalBallotProgress: BallotProgress | null;
+  roundAdvancementSummaries: RoundAdvancementSummary[];
   finalists: FinalistWithTitle[];
   ballotSubmittedCount: number;
   roundThreeGoCounts: Record<string, number>;
+  minimumRoundThreeGoVoters: number;
 };
 
 export type PlayerSessionView = SessionView & {
@@ -173,6 +218,9 @@ export type PlayerSessionView = SessionView & {
   ownVote: GameVote | null;
   ownFinalBallotVote: FinalBallotVote | null;
   goVotesUsedInRound: number;
+  goVoteQuotas: GoVoteQuotaUsage[];
+  roundAdvancementSummaries: RoundAdvancementSummary[];
+  closedSelectionSummaries: Record<string, ClosedSelectionSummary>;
   finalists: FinalistWithTitle[];
 };
 

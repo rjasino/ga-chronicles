@@ -42,9 +42,39 @@ describe("Go Force admin schemas", () => {
   });
 
   it("validates independently configurable voting timers", () => {
-    expect(goForceVotingSettingsSchema.safeParse({ roundVotingSeconds: 10, finalBallotSeconds: 10 }).success).toBe(true);
-    expect(goForceVotingSettingsSchema.safeParse({ roundVotingSeconds: 4, finalBallotSeconds: 10 }).success).toBe(false);
-    expect(goForceVotingSettingsSchema.safeParse({ roundVotingSeconds: 10, finalBallotSeconds: 601 }).success).toBe(false);
+    const validSettings = {
+      roundVotingSeconds: 10,
+      roundVotingTimed: true,
+      finalBallotSeconds: 10,
+      finalBallotTimed: true,
+      minimumRoundThreeGoVoters: 2,
+    };
+    expect(goForceVotingSettingsSchema.safeParse(validSettings).success).toBe(true);
+    expect(
+      goForceVotingSettingsSchema.safeParse({
+        ...validSettings,
+        roundVotingTimed: false,
+        finalBallotTimed: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      goForceVotingSettingsSchema.safeParse({ ...validSettings, roundVotingSeconds: 4 }).success,
+    ).toBe(false);
+    expect(
+      goForceVotingSettingsSchema.safeParse({ ...validSettings, finalBallotSeconds: 601 }).success,
+    ).toBe(false);
+    expect(
+      goForceVotingSettingsSchema.safeParse({
+        ...validSettings,
+        minimumRoundThreeGoVoters: 0,
+      }).success,
+    ).toBe(false);
+    expect(
+      goForceVotingSettingsSchema.safeParse({
+        ...validSettings,
+        minimumRoundThreeGoVoters: 65,
+      }).success,
+    ).toBe(false);
   });
 
   it("accepts only known eligibility states", () => {

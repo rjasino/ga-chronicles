@@ -41,13 +41,16 @@ export type RoundCompletionStatus =
 export function roundCompletionStatus(
   roundNumber: number,
   advancedCount: number,
-  missingRoundThreeGo: number,
+  roundThreeGoVoterCount: number,
+  minimumRoundThreeGoVoters = 2,
 ): RoundCompletionStatus {
   if (advancedCount <= 0) return { status: "stopped_no_finalists", nextRound: null };
   if (roundNumber === 1) return { status: "live", nextRound: 2 };
   if (roundNumber === 2) return { status: "live", nextRound: 3 };
   if (roundNumber === 3) {
-    if (missingRoundThreeGo > 0) return { status: "incomplete_vote_threshold", nextRound: null };
+    if (roundThreeGoVoterCount < minimumRoundThreeGoVoters) {
+      return { status: "incomplete_vote_threshold", nextRound: null };
+    }
     return { status: "final_ballot", nextRound: null };
   }
   return { status: "stopped_no_finalists", nextRound: null };

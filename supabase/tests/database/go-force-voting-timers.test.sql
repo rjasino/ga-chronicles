@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(25);
 
 create function pg_temp.test_latest_selection(target_session uuid)
 returns uuid language sql as $$
@@ -68,7 +68,10 @@ insert into public.go_force_session_participants (session_id, account_id, displa
 values ('40000000-0000-4000-8000-000000000091', '10000000-0000-4000-8000-000000000001', 'Local Reader', 1);
 
 select is((select round_voting_seconds from public.go_force_page_settings where id = true), 10, 'round vote timer defaults to ten seconds');
+select is((select round_voting_timed from public.go_force_page_settings where id = true), true, 'round voting timers are enabled by default');
 select is((select final_ballot_seconds from public.go_force_page_settings where id = true), 10, 'final ballot timer defaults to ten seconds');
+select is((select final_ballot_timed from public.go_force_page_settings where id = true), true, 'final ballot timers are enabled by default');
+select is((select minimum_round_three_go_voters from public.go_force_page_settings where id = true), 2, 'the minimum Round 3 Go-voter quorum defaults to two');
 update public.go_force_page_settings
 set round_voting_seconds = 30, final_ballot_seconds = 45
 where id = true;
@@ -222,6 +225,73 @@ select is(
   (select status from public.go_force_sessions where id = '40000000-0000-4000-8000-000000000092'),
   'incomplete_vote_threshold',
   'timeout closure preserves the existing incomplete-session rules'
+);
+
+reset role;
+update public.go_force_page_settings set round_voting_timed = false where id = true;
+insert into public.go_force_sessions (id, goty_year, game_master_id, status)
+values ('40000000-0000-4000-8000-000000000093', 2033, '10000000-0000-4000-8000-000000000004', 'live');
+insert into public.go_force_session_participants (session_id, account_id, display_name_snapshot, roster_order)
+values ('40000000-0000-4000-8000-000000000093', '10000000-0000-4000-8000-000000000001', 'Local Reader', 1);
+insert into public.go_force_session_games (id, session_id, title_snapshot, source_year, display_order)
+values ('60000000-0000-4000-8000-000000000093', '40000000-0000-4000-8000-000000000093', 'Manual Timer Game', 2033, 1);
+insert into public.go_force_rounds (id, session_id, round_number, status, go_limit)
+values ('70000000-0000-4000-8000-000000000094', '40000000-0000-4000-8000-000000000093', 1, 'active', 3);
+insert into public.go_force_selections (id, round_id, session_game_id, selection_order)
+values (
+  '80000000-0000-4000-8000-000000000093',
+  '70000000-0000-4000-8000-000000000094',
+  '60000000-0000-4000-8000-000000000093',
+  1
+);
+select is(
+  (select voting_deadline_at from public.go_force_selections where id = '80000000-0000-4000-8000-000000000093'),
+  null,
+  'manual round voting does not assign a deadline'
+);
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+select throws_ok(
+  $$select public.go_force_expire_selection('80000000-0000-4000-8000-000000000093')$$,
+  'P0001',
+  'TIMER_NOT_EXPIRED',
+  'a participant cannot expire a ballot in manual mode'
+);
+select throws_ok(
+  $$select public.go_force_close_selection('80000000-0000-4000-8000-000000000093')$$,
+  'P0001',
+  'NOT_AUTHORIZED',
+  'participants cannot close a ballot early in manual mode'
+);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
+select lives_ok(
+  $$select public.go_force_close_selection('80000000-0000-4000-8000-000000000093')$$,
+  'the facilitator can manually close a round vote'
+);
+
+reset role;
+update public.go_force_page_settings set final_ballot_timed = false where id = true;
+insert into public.go_force_sessions (id, goty_year, game_master_id, status)
+values ('40000000-0000-4000-8000-000000000094', 2034, '10000000-0000-4000-8000-000000000004', 'final_ballot');
+insert into public.go_force_session_participants (session_id, account_id, display_name_snapshot, roster_order)
+values ('40000000-0000-4000-8000-000000000094', '10000000-0000-4000-8000-000000000001', 'Local Reader', 1);
+select is(
+  (select final_ballot_deadline_at from public.go_force_sessions where id = '40000000-0000-4000-8000-000000000094'),
+  null,
+  'manual final-ballot mode does not assign a deadline'
+);
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+select throws_ok(
+  $$select public.go_force_expire_final_ballot('40000000-0000-4000-8000-000000000094')$$,
+  'P0001',
+  'TIMER_NOT_EXPIRED',
+  'a participant cannot expire the final ballot in manual mode'
+);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
+select lives_ok(
+  $$select public.go_force_close_final_ballot('40000000-0000-4000-8000-000000000094')$$,
+  'the facilitator can manually close a final ballot'
 );
 
 select * from finish();

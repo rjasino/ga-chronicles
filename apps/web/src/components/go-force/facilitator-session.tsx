@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { LatePlayerForm } from "@/components/go-force/late-player-form";
 import { GoForceLiveRefresh } from "@/components/go-force/live-refresh";
 import { GameDetailsCard } from "@/components/go-force/game-details-card";
+import { RoundAdvancementCard } from "@/components/go-force/round-advancement-card";
 import { RouletteReveal } from "@/components/go-force/roulette-reveal";
+import { VoteChoiceLabel } from "@/components/go-force/vote-choice-label";
 import { VotingCountdown } from "@/components/go-force/voting-countdown";
+import { useGoForceLocalMutation } from "@/components/go-force/use-local-mutation";
 import { Button } from "@/components/ui/button";
 import { Message } from "@/components/ui/message";
 import {
@@ -20,7 +24,12 @@ import {
   type BallotActionState,
 } from "@/features/go-force/ballot-actions";
 import { goLimitForRound } from "@/features/go-force/rules";
+import {
+  markGoForceLocalMutationFinished,
+  markGoForceLocalMutationStarted,
+} from "@/features/go-force/realtime";
 import type {
+  ActiveGoForceAccountOption,
   FacilitatorSessionView,
   GameVote,
   SelectionWithVotes,
@@ -32,12 +41,13 @@ function StartSessionForm({ sessionId }: { sessionId: string }) {
     startGoForceSession,
     {} satisfies SessionActionState,
   );
+  const onSubmit = useGoForceLocalMutation(pending);
   return (
-    <form className="form-stack" action={action}>
+    <form className="form-stack" action={action} onSubmit={onSubmit}>
       <input type="hidden" name="sessionId" value={sessionId} />
       <p className="m-0">
-        Starting locks the roster and the eligible-game snapshot for this session. No late players
-        can join.
+        Starting locks the eligible-game snapshot. The initial roster is locked, but authorized
+        admins and the game master can add late players while voting is open.
       </p>
       {state.error && <Message tone="error">{state.error}</Message>}
       {state.success && <Message tone="success">{state.success}</Message>}
@@ -75,11 +85,20 @@ function DrawForm({
     setCommitPending(true);
     setCommitError(undefined);
     startTransition(async () => {
-      const result = await commitGoForceSelection(sessionId, state.gameId!);
-      setCommitPending(false);
-      if (result.error) {
+      markGoForceLocalMutationStarted();
+      try {
+        const result = await commitGoForceSelection(sessionId, state.gameId!);
+        setCommitPending(false);
+        if (result.error) {
+          commitStarted.current = false;
+          setCommitError(result.error);
+        }
+      } catch {
         commitStarted.current = false;
-        setCommitError(result.error);
+        setCommitPending(false);
+        setCommitError("Voting could not be opened. Please retry.");
+      } finally {
+        markGoForceLocalMutationFinished();
       }
     });
   };
@@ -116,11 +135,7 @@ function DrawForm({
   }
 
   return (
-    <form
-      className="form-stack"
-      action={action}
-      onSubmit={() => onDrawStateChange(true)}
-    >
+    <form className="form-stack" action={action} onSubmit={() => onDrawStateChange(true)}>
       <input type="hidden" name="sessionId" value={sessionId} />
       {state.error && <RouletteReveal status="error" error={state.error} />}
       {pending && <RouletteReveal status="pending" />}
@@ -142,11 +157,13 @@ function CloseSelectionForm({
     closeGoForceSelection,
     {} satisfies GameActionState,
   );
+  const onSubmit = useGoForceLocalMutation(pending);
   return (
-    <form className="form-stack" action={action}>
+    <form className="form-stack" action={action} onSubmit={onSubmit}>
       <input type="hidden" name="sessionId" value={sessionId} />
       <input type="hidden" name="selectionId" value={selectionId} />
       {state.error && <Message tone="error">{state.error}</Message>}
+      {state.success && <Message tone="success">{state.success}</Message>}
       <Button purpose="primary" pending={pending}>
         Close voting
       </Button>
@@ -159,8 +176,9 @@ function CloseBallotForm({ sessionId }: { sessionId: string }) {
     closeGoForceFinalBallot,
     {} satisfies BallotActionState,
   );
+  const onSubmit = useGoForceLocalMutation(pending);
   return (
-    <form className="form-stack" action={action}>
+    <form className="form-stack" action={action} onSubmit={onSubmit}>
       <input type="hidden" name="sessionId" value={sessionId} />
       {state.error && <Message tone="error">{state.error}</Message>}
       {state.success && <Message tone="success">{state.success}</Message>}
@@ -195,7 +213,11 @@ export function VoteBreakdown({
       <p className="mt-2">
         <strong>{selection.advancement_outcome === "advanced" ? "Advances" : "Eliminated"}</strong>
         {" · "}
-        {count("go")} go · {count("no-go")} no-go · {count("abstain")} abstain
+        <span className="text-success-ink">{count("go")} go</span>
+        {" · "}
+        <span className="text-danger-ink">{count("no-go")} no-go</span>
+        {" · "}
+        <span className="text-muted">{count("abstain")} abstain</span>
       </p>
       <ul className="m-3 grid list-none gap-1.5 p-0">
         {participants.map((participant) => {
@@ -208,7 +230,11 @@ export function VoteBreakdown({
               className="flex justify-between gap-3 border-b border-line pb-1"
             >
               <span>{participant.display_name_snapshot}</span>
-              <strong>{vote?.choice ?? "abstain"}</strong>
+              {vote ? (
+                <VoteChoiceLabel choice={vote.choice} />
+              ) : (
+                <span className="text-muted">Not eligible</span>
+              )}
             </li>
           );
         })}
@@ -219,11 +245,13 @@ export function VoteBreakdown({
 
 function RoundThreeGoStatus({ data }: { data: FacilitatorSessionView }) {
   if (data.currentRound?.round_number !== 3) return null;
+  const goVoterCount = Object.keys(data.roundThreeGoCounts).length;
   return (
     <div className="go-force-card border border-line bg-paper p-5">
       <h3 className="m-0 font-display text-[1.2rem] text-blue">Round 3 go check</h3>
       <p className="m-0 mt-1 text-muted">
-        Every player must spend exactly one go before the final ballot.
+        {goVoterCount} of {data.minimumRoundThreeGoVoters} required players have cast a Go. Other
+        rostered players do not need to vote Go for the session to continue.
       </p>
       <ul className="m-3 grid list-none gap-1 p-0">
         {data.participants
@@ -232,7 +260,7 @@ function RoundThreeGoStatus({ data }: { data: FacilitatorSessionView }) {
             <li key={participant.account_id} className="flex justify-between gap-3">
               <span>{participant.display_name_snapshot}</span>
               <strong>
-                {data.roundThreeGoCounts[participant.account_id] ? "Used" : "Not used"}
+                {data.roundThreeGoCounts[participant.account_id] ? "Go used" : "No Go"}
               </strong>
             </li>
           ))}
@@ -241,7 +269,15 @@ function RoundThreeGoStatus({ data }: { data: FacilitatorSessionView }) {
   );
 }
 
-export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
+export function FacilitatorSession({
+  data,
+  addableAccounts,
+  canAddParticipants,
+}: {
+  data: FacilitatorSessionView;
+  addableAccounts: ActiveGoForceAccountOption[];
+  canAddParticipants: boolean;
+}) {
   const [drawInProgress, setDrawInProgress] = useState(false);
   const {
     session,
@@ -254,7 +290,8 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
     ballotSubmittedCount,
   } = data;
   const activeParticipants = participants.filter((participant) => participant.active);
-  const submittedVotes = currentSelection?.votes.filter((vote) => vote.submitted_at).length ?? 0;
+  const submittedVotes = data.selectionProgress?.submitted ?? 0;
+  const eligibleVoters = data.selectionProgress?.eligible ?? activeParticipants.length;
   const winnerTitles = (data.result?.winner_game_ids ?? []).map(
     (gameId) => data.games.find((game) => game.id === gameId)?.title_snapshot ?? "Winner",
   );
@@ -267,6 +304,36 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
         </p>
         <GoForceLiveRefresh sessionId={session.id} />
       </div>
+
+      <section
+        className="go-force-card border border-line bg-paper p-5"
+        aria-labelledby="session-roster"
+      >
+        <h2 id="session-roster" className="m-0 font-display text-[1.3rem] text-blue">
+          Session roster
+        </h2>
+        <p className="m-0 mt-1 text-muted">
+          {canAddParticipants
+            ? `${activeParticipants.length} of 64 players. The initial roster is locked; late players can still be added.`
+            : session.status === "ready"
+              ? "The ready roster can be adjusted from Go Force admin before the session starts."
+              : "This session is closed to new players."}
+        </p>
+        <ul className="m-3 grid list-none gap-1 p-0">
+          {activeParticipants.map((participant) => (
+            <li key={participant.account_id}>{participant.display_name_snapshot}</li>
+          ))}
+        </ul>
+        {canAddParticipants && (
+          <LatePlayerForm
+            sessionId={session.id}
+            accounts={addableAccounts}
+            participantCount={activeParticipants.length}
+          />
+        )}
+      </section>
+
+      <RoundAdvancementCard summaries={data.roundAdvancementSummaries} />
 
       {session.status === "ready" && (
         <section className="go-force-card border border-line p-5">
@@ -311,8 +378,8 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
                   coverArtUrl={currentSelection.game?.cover_art_url_snapshot}
                 />
                 <p className="m-0 mt-1">
-                  {submittedVotes} of {activeParticipants.length} players have submitted. Individual
-                  votes stay hidden on player screens.
+                  {submittedVotes} of {eligibleVoters} players have submitted. Individual votes stay
+                  hidden on player screens.
                 </p>
                 {currentSelection.voting_deadline_at && (
                   <div className="mt-3">
@@ -346,8 +413,9 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
         <section className="go-force-card border border-line p-5">
           <h2 className="m-0 font-display text-[1.7rem] text-blue">Final ballot</h2>
           <p>
-            {ballotSubmittedCount} of {activeParticipants.length} players have submitted a final
-            ballot.
+            {ballotSubmittedCount} of{" "}
+            {data.finalBallotProgress?.eligible ?? activeParticipants.length} players have submitted
+            a final ballot.
           </p>
           {session.final_ballot_deadline_at && (
             <VotingCountdown
@@ -418,24 +486,14 @@ export function FacilitatorSession({ data }: { data: FacilitatorSessionView }) {
         <section className="go-force-card border border-line bg-paper p-5">
           <h2 className="m-0 font-display text-[1.7rem] text-blue">Session incomplete</h2>
           <p>
-            At least 80% of expected votes and every player&apos;s Round 3 go are required. No GOTY
-            result was published.
+            The configured Round 3 Go-voter minimum or a final-ballot completion requirement was not
+            met. No GOTY result was published.
           </p>
           <Link className="text-link" href="/admin/go-force">
             Return to Go Force admin
           </Link>
         </section>
       )}
-
-      <section className="go-force-card border border-line p-5">
-        <h2 className="m-0 font-display text-[1.3rem] text-blue">Confirmed roster</h2>
-        <p className="m-0 mt-1 text-muted">The roster is locked for this session.</p>
-        <ul className="m-3 grid list-none gap-1 p-0">
-          {activeParticipants.map((participant) => (
-            <li key={participant.account_id}>{participant.display_name_snapshot}</li>
-          ))}
-        </ul>
-      </section>
     </div>
   );
 }

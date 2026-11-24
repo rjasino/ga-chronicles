@@ -16,6 +16,7 @@
   --color-card: var(--card);
   --color-field-line: var(--field-line);
   --color-on-accent: var(--on-accent);
+  --color-on-vote-accent: var(--on-vote-accent);
   --color-on-brand: var(--on-brand);
   --color-brand-band: var(--brand-band);
   --color-danger-bg: var(--danger-bg);
@@ -45,6 +46,7 @@
   --card: #ffffff;
   --field-line: #9aa5b3;
   --on-accent: #17263b;
+  --on-vote-accent: #fffefa;
   --on-brand: #fffefa;
   --brand-band: #123a72;
   --danger-bg: #fff0f0;
@@ -77,6 +79,7 @@
   --card: #101a30;
   --field-line: #2c3c5e;
   --on-accent: #0a0f1c;
+  --on-vote-accent: #0a0f1c;
   --on-brand: #e9eefc;
   --brand-band: #0d1526;
   --danger-bg: #2a1116;

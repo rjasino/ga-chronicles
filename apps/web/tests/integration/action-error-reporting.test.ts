@@ -174,7 +174,14 @@ describe("Server Action failure reporting", () => {
   it("keeps known Go Force domain errors unreported", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: "BALLOT_NOT_OPEN" } });
-    mocks.createClient.mockResolvedValue({ rpc });
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: { id: "40000000-0000-4000-8000-000000000001" },
+      error: null,
+    });
+    const eq = vi.fn().mockReturnValue({ maybeSingle });
+    const select = vi.fn().mockReturnValue({ eq });
+    const from = vi.fn().mockReturnValue({ select });
+    mocks.createClient.mockResolvedValue({ from, rpc });
 
     const result = await submitGoForceFinalBallot({}, ballotForm());
 
@@ -186,7 +193,14 @@ describe("Server Action failure reporting", () => {
   it("reports unexpected Go Force failures with a matching identifier", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const rpc = vi.fn().mockResolvedValue({ data: null, error: { message: "connection reset" } });
-    mocks.createClient.mockResolvedValue({ rpc });
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: { id: "40000000-0000-4000-8000-000000000001" },
+      error: null,
+    });
+    const eq = vi.fn().mockReturnValue({ maybeSingle });
+    const select = vi.fn().mockReturnValue({ eq });
+    const from = vi.fn().mockReturnValue({ select });
+    mocks.createClient.mockResolvedValue({ from, rpc });
 
     const result = await submitGoForceFinalBallot({}, ballotForm());
 

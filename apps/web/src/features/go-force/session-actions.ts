@@ -1,11 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getVerifiedSession } from "@/lib/supabase/session";
 import { failureResult } from "@/lib/error-logging";
-import { canManageGoForce } from "@/features/go-force/access";
-import { createSessionSchema } from "@/features/go-force/admin-schemas";
+import { canManageGoForce, isGoForceAdmin, isGoForceGameMaster } from "@/features/go-force/access";
+import {
+  addSessionParticipantSchema,
+  createSessionSchema,
+} from "@/features/go-force/admin-schemas";
 import { withKnownGoForceFailure } from "@/features/go-force/action-failures";
 import { publishGoForceSessionUpdate } from "@/features/go-force/realtime-broadcast";
 
@@ -15,14 +18,6 @@ export type SessionActionState = {
   success?: string;
   sessionId?: string;
 };
-
-function revalidateSession(sessionId: string) {
-  revalidatePath("/go-force");
-  revalidatePath("/admin/go-force");
-  revalidatePath(`/admin/go-force/sessions/${sessionId}`);
-  revalidatePath(`/go-force/session/${sessionId}`);
-  revalidatePath(`/go-force/results/${sessionId}`);
-}
 
 export async function createGoForceSession(
   _state: SessionActionState,
@@ -65,7 +60,7 @@ export async function createGoForceSession(
     });
   }
 
-  revalidateSession(sessionId);
+  refresh();
   return {
     sessionId,
     success: "Session ready. Confirm the roster and start it when the show begins.",
@@ -95,8 +90,64 @@ export async function startGoForceSession(
   }
 
   await publishGoForceSessionUpdate(sessionId);
-  revalidateSession(sessionId);
   return { success: "Session started. The roster and game list are now locked." };
+}
+
+export async function addGoForceParticipant(
+  _state: SessionActionState,
+  formData: FormData,
+): Promise<SessionActionState> {
+  const session = await getVerifiedSession();
+  if (!session) return { error: "Sign in to add a player." };
+
+  const parsed = addSessionParticipantSchema.safeParse({
+    sessionId: formData.get("sessionId"),
+    accountId: formData.get("accountId"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Choose a valid player to add." };
+  }
+
+  const supabase = await createClient();
+  const { data: target, error: lookupError } = await supabase
+    .from("go_force_sessions")
+    .select("id,game_master_id,status")
+    .eq("id", parsed.data.sessionId)
+    .maybeSingle();
+  if (lookupError) {
+    return failureResult({
+      operation: "go-force.session.add-participant-lookup",
+      error: lookupError,
+      message: "The Go Force session could not be loaded. Please retry.",
+      context: { sessionId: parsed.data.sessionId },
+    });
+  }
+  if (!target) return { error: "That Go Force session could not be found." };
+  if (
+    !isGoForceAdmin(session.roles) &&
+    !isGoForceGameMaster(session.userId, target.game_master_id)
+  ) {
+    return { error: "Only the game master or an admin can add players." };
+  }
+  if (target.status !== "live" && target.status !== "final_ballot") {
+    return { error: "This session is no longer accepting new players." };
+  }
+
+  const { error } = await supabase.rpc("go_force_add_session_participant", {
+    target_session: parsed.data.sessionId,
+    target_account: parsed.data.accountId,
+  });
+  if (error) {
+    return withKnownGoForceFailure(
+      error,
+      "go-force.session.add-participant",
+      "The player could not be added to this session.",
+      { sessionId: parsed.data.sessionId },
+    );
+  }
+
+  await publishGoForceSessionUpdate(parsed.data.sessionId);
+  return { success: "Player added to the session.", sessionId: parsed.data.sessionId };
 }
 
 export async function deleteReadyGoForceSession(
@@ -124,6 +175,6 @@ export async function deleteReadyGoForceSession(
     });
   }
 
-  revalidateSession(sessionId);
+  refresh();
   return { success: "Ready session removed." };
 }

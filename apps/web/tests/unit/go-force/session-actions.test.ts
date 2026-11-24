@@ -5,9 +5,13 @@ const mocks = vi.hoisted(() => ({
   getVerifiedSession: vi.fn(),
   rpc: vi.fn(),
   revalidatePath: vi.fn(),
+  refresh: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("next/cache", () => ({
+  revalidatePath: mocks.revalidatePath,
+  refresh: mocks.refresh,
+}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/supabase/session", () => ({ getVerifiedSession: mocks.getVerifiedSession }));
 
@@ -51,7 +55,7 @@ describe("createGoForceSession", () => {
       target_goty_year: 2026,
       target_participant_ids: [participantId],
     });
-    expect(mocks.revalidatePath).toHaveBeenCalledWith(`/go-force/session/${sessionId}`);
+    expect(mocks.refresh).toHaveBeenCalledOnce();
   });
 
   it("maps an inactive selected account to its known domain message", async () => {
