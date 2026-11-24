@@ -8,7 +8,7 @@
 ## Supabase quotas and reliability
 
 - [ ] Review current Supabase Free database, egress, storage, and inactivity-pause limits; set an owner and monthly quota review.
-- [ ] Enable and test backups appropriate to the selected plan. For Free, schedule encrypted `supabase db dump` exports and verify restore into a separate project before relying on the content.
+- [ ] Follow the [database maintenance runbook](database-maintenance.md) to configure production Supabase, enable and test plan-appropriate backups, and verify restore into a separate project. A default `supabase db dump` is schema-only, not a complete project backup.
 - [ ] Store exported database backups and article images outside the primary project, with access restricted to administrators.
 - [ ] Define an upgrade trigger before quota exhaustion or project pausing affects publishing.
 
