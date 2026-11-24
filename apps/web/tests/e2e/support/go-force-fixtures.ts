@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+const PAGE_SIZE = 1000;
+
 export function goForceServiceClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -12,21 +14,31 @@ export function goForceServiceClient(): SupabaseClient {
 }
 
 export async function unusedGoForceYear(service: SupabaseClient): Promise<number> {
-  const { data: games, error: gamesError } = await service
-    .from("go_force_annual_games")
-    .select("goty_year")
-    .eq("eligibility_state", "eligible");
-  if (gamesError) throw gamesError;
-  const { data: sessions, error: sessionsError } = await service
-    .from("go_force_sessions")
-    .select("goty_year")
-    .in("status", ["ready", "live", "final_ballot"]);
-  if (sessionsError) throw sessionsError;
-
-  const occupiedYears = new Set([
-    ...(games ?? []).map((game) => game.goty_year),
-    ...(sessions ?? []).map((session) => session.goty_year),
-  ]);
+  const occupiedYears = new Set<number>();
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await service
+      .from("go_force_annual_games")
+      .select("goty_year")
+      .eq("eligibility_state", "eligible")
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data ?? [];
+    page.forEach((game) => occupiedYears.add(game.goty_year));
+    if (page.length < PAGE_SIZE) break;
+  }
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await service
+      .from("go_force_sessions")
+      .select("goty_year")
+      .in("status", ["ready", "live", "final_ballot"])
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data ?? [];
+    page.forEach((session) => occupiedYears.add(session.goty_year));
+    if (page.length < PAGE_SIZE) break;
+  }
   const start = Date.now() % 101;
   for (let offset = 0; offset < 101; offset += 1) {
     const year = 2000 + ((start + offset) % 101);
