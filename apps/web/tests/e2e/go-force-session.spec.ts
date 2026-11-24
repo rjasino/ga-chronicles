@@ -22,7 +22,11 @@ async function drawAndVote(
   await player.reload();
   await expect(player.getByText("Now voting")).not.toBeVisible();
   await expect(facilitator.getByText("Voting open")).toBeVisible();
-  const title = (await facilitator.locator("section h3").first().innerText()).trim();
+  const title = (await facilitator
+    .locator("section")
+    .filter({ has: facilitator.getByRole("heading", { name: "Roulette and vote control" }) })
+    .locator("article h3")
+    .innerText()).trim();
 
   await player.reload();
   await expect(player.getByText("Now voting")).toBeVisible();

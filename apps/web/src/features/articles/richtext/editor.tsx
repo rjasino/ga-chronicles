@@ -97,7 +97,7 @@ export function RichTextEditor({ initialBody }: RichTextEditorProps) {
       if (result.error) {
         setImageError(result.error);
       } else if (result.url) {
-        editor.chain().focus().setImage({ src: result.url, alt: file.name }).run();
+        editor.chain().setImage({ src: result.url, alt: file.name }).run();
       }
     } catch {
       setImageError("The image could not be uploaded. Try again.");
