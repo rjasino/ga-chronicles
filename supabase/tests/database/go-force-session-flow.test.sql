@@ -68,6 +68,8 @@ values ('40000000-0000-4000-8000-000000000099', 2030, '10000000-0000-4000-8000-0
 insert into public.go_force_session_participants (session_id, account_id, display_name_snapshot, roster_order)
 values ('40000000-0000-4000-8000-000000000099', '10000000-0000-4000-8000-000000000001', 'Local Reader', 1);
 
+update public.go_force_page_settings set minimum_round_three_go_voters = 1 where id = true;
+
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 select is(

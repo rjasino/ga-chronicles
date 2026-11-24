@@ -146,7 +146,7 @@ select is(
   83.33::numeric,
   'the existing final-ballot completion percentage remains in effect'
 );
-select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000004', true);
 select is(
   public.go_force_close_selection('80000000-0000-4000-8000-000000000104')->>'sessionStatus',
   'incomplete_vote_threshold',
