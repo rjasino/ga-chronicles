@@ -9,8 +9,13 @@ alter table public.go_force_page_settings
 alter table public.go_force_sessions
   add column if not exists wheel_fallback_enabled boolean not null default false;
 
-alter table public.go_force_rounds
-  add column if not exists fallback_queue uuid[] not null default '{}'::uuid[];
+create table public.go_force_round_fallback_queues (
+  round_id uuid primary key references public.go_force_rounds(id) on delete cascade,
+  remaining_game_ids uuid[] not null default '{}'::uuid[]
+);
+
+alter table public.go_force_round_fallback_queues enable row level security;
+revoke all on table public.go_force_round_fallback_queues from public, anon, authenticated;
 
 create or replace function public.go_force_create_session(target_goty_year integer, target_participant_ids uuid[])
 returns uuid language plpgsql security definer set search_path = '' as $$
@@ -185,7 +190,11 @@ begin
   -- Keep only queued games that are still eligible and un-drawn in this round.
   select coalesce(array_agg(q.game_id order by q.ord), '{}'::uuid[])
   into effective_queue
-  from unnest(coalesce(active_round.fallback_queue, '{}'::uuid[])) with ordinality as q(game_id, ord)
+  from unnest(coalesce((
+    select queue.remaining_game_ids
+    from public.go_force_round_fallback_queues queue
+    where queue.round_id = active_round.id
+  ), '{}'::uuid[])) with ordinality as q(game_id, ord)
   where q.game_id = any(remaining_ids);
 
   -- Lazily pre-randomize remaining games when the queue is empty.
@@ -197,9 +206,10 @@ begin
 
   chosen_game_id := effective_queue[1];
 
-  update public.go_force_rounds
-  set fallback_queue = coalesce(effective_queue[2:], '{}'::uuid[])
-  where id = active_round.id;
+  insert into public.go_force_round_fallback_queues (round_id, remaining_game_ids)
+  values (active_round.id, coalesce(effective_queue[2:], '{}'::uuid[]))
+  on conflict (round_id) do update
+  set remaining_game_ids = excluded.remaining_game_ids;
 
   select * into chosen_game
   from public.go_force_session_games sg

@@ -1,5 +1,5 @@
 begin;
-select plan(13);
+select plan(16);
 
 select has_function(
   'public',
@@ -12,6 +12,19 @@ select has_function(
   'go_force_draw_fallback_selection',
   array['uuid'],
   'go_force_draw_fallback_selection function exists'
+);
+select has_table(
+  'public',
+  'go_force_round_fallback_queues',
+  'fallback queue storage table exists'
+);
+select ok(
+  not has_table_privilege('anon', 'public.go_force_round_fallback_queues', 'select'),
+  'anonymous clients cannot read fallback queues'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.go_force_round_fallback_queues', 'select'),
+  'authenticated clients cannot read fallback queues'
 );
 
 insert into public.go_force_annual_games (
@@ -102,7 +115,11 @@ select is(
 
 reset role;
 select is(
-  cardinality((select fallback_queue from public.go_force_rounds where id = '70000000-0000-4000-8000-000000000191')),
+  cardinality((
+    select remaining_game_ids
+    from public.go_force_round_fallback_queues
+    where round_id = '70000000-0000-4000-8000-000000000191'
+  )),
   1,
   'fallback_queue has 1 remaining game after popping 1 of 2 remaining'
 );

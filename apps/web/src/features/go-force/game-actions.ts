@@ -113,7 +113,7 @@ export async function drawGoForceSelection(
       view.remainingGames.map((game) => ({ id: game.id, text: game.title_snapshot })),
     );
   } catch (error) {
-    if (error instanceof WheelOfNamesError) {
+    if (error instanceof WheelOfNamesError && error.reason === "availability") {
       reportFailure({
         operation: "go-force.selection.spin-fallback",
         error,
@@ -124,6 +124,7 @@ export async function drawGoForceSelection(
       });
       return drawWithFallback(sessionId, "unreachable");
     }
+    if (error instanceof WheelOfNamesError) return { error: error.message };
     return failureResult({
       operation: "go-force.selection.spin",
       error,

@@ -17,6 +17,13 @@ export type WheelOfNamesSpinResult = {
   winner: WheelOfNamesEntry;
 };
 
+export type WheelOfNamesErrorReason =
+  | "availability"
+  | "configuration"
+  | "empty_pool"
+  | "invalid_response"
+  | "invalid_winner";
+
 export type WheelConfig = {
   title: string;
   autoRemoveWinner: true;
@@ -38,6 +45,7 @@ const spinResponseSchema = z.object({
 export class WheelOfNamesError extends Error {
   constructor(
     message: string,
+    readonly reason: WheelOfNamesErrorReason,
     readonly requestId?: string,
   ) {
     super(message);
@@ -81,7 +89,7 @@ function logSpinFailure(requestId: string, stage: string, error: unknown) {
 
 export function buildWheelConfig(entries: WheelOfNamesEntry[]): WheelConfig {
   if (entries.length === 0) {
-    throw new WheelOfNamesError("There are no games left to spin in this round.");
+    throw new WheelOfNamesError("There are no games left to spin in this round.", "empty_pool");
   }
 
   return {
@@ -103,14 +111,15 @@ export async function spinWheelOfNames(
     wheelConfig = buildWheelConfig(entries);
   } catch (error) {
     if (error instanceof WheelOfNamesError) {
-      throw new WheelOfNamesError(error.message, requestId);
+      throw new WheelOfNamesError(error.message, error.reason, requestId);
     }
     if (error instanceof Error && error.message.includes("WHEEL_OF_NAMES_API_KEY")) {
-      throw new WheelOfNamesError(error.message, requestId);
+      throw new WheelOfNamesError(error.message, "configuration", requestId);
     }
     logSpinFailure(requestId, "configuration", error);
     throw new WheelOfNamesError(
       "Wheel of Names could not start the spin. Please retry.",
+      "configuration",
       requestId,
     );
   }
@@ -139,6 +148,7 @@ export async function spinWheelOfNames(
     logSpinFailure(requestId, "provider-request", error);
     throw new WheelOfNamesError(
       "Wheel of Names is unavailable right now. Please retry.",
+      "availability",
       requestId,
     );
   }
@@ -152,6 +162,7 @@ export async function spinWheelOfNames(
   if (!response.ok) {
     throw new WheelOfNamesError(
       `Wheel of Names could not complete the spin (HTTP ${response.status}).`,
+      "availability",
       requestId,
     );
   }
@@ -167,6 +178,7 @@ export async function spinWheelOfNames(
     logSpinFailure(requestId, "response-json", parseError);
     throw new WheelOfNamesError(
       "Wheel of Names returned an invalid response. Please retry.",
+      "invalid_response",
       requestId,
     );
   }
@@ -187,6 +199,7 @@ export async function spinWheelOfNames(
     logSpinFailure(requestId, "response-schema", error);
     throw new WheelOfNamesError(
       "Wheel of Names returned an invalid response. Please retry.",
+      "invalid_response",
       requestId,
     );
   }
@@ -198,6 +211,7 @@ export async function spinWheelOfNames(
     });
     throw new WheelOfNamesError(
       "Wheel of Names returned an invalid response. Please retry.",
+      "invalid_response",
       requestId,
     );
   }
@@ -206,12 +220,14 @@ export async function spinWheelOfNames(
   if (!winningEntry) {
     throw new WheelOfNamesError(
       "Wheel of Names returned a game that is not in the current game pool. Please retry.",
+      "invalid_winner",
       requestId,
     );
   }
   if (winningEntry.text !== parsed.data.winner.text) {
     throw new WheelOfNamesError(
       "Wheel of Names winner title did not match the current game pool. Please retry.",
+      "invalid_winner",
       requestId,
     );
   }

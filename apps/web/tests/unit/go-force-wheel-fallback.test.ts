@@ -108,7 +108,11 @@ describe("Wheel of Names fallback actions", () => {
       remainingGames: [{ id: "60000000-0000-4000-8000-000000000002", title_snapshot: "Game B" }],
     });
     mocks.spinWheelOfNames.mockRejectedValue(
-      new WheelOfNamesError("Wheel of Names is unavailable right now. Please retry.", "req-123"),
+      new WheelOfNamesError(
+        "Wheel of Names is unavailable right now. Please retry.",
+        "availability",
+        "req-123",
+      ),
     );
     const rpc = vi.fn().mockResolvedValue({
       data: {
@@ -138,5 +142,28 @@ describe("Wheel of Names fallback actions", () => {
       fallbackUsed: true,
       fallbackReason: "unreachable",
     });
+  });
+
+  it("does not automatically fall back for configuration errors", async () => {
+    mocks.getFacilitatorSessionView.mockResolvedValue({
+      session: { id: sessionId, game_master_id: userId, status: "live", wheel_fallback_enabled: false },
+      currentRound: { id: "70000000-0000-4000-8000-000000000001", round_number: 1 },
+      currentSelection: null,
+      remainingGames: [{ id: "60000000-0000-4000-8000-000000000002", title_snapshot: "Game B" }],
+    });
+    const message = "WHEEL_OF_NAMES_API_KEY is required to spin the roulette.";
+    mocks.spinWheelOfNames.mockRejectedValue(
+      new WheelOfNamesError(message, "configuration", "req-456"),
+    );
+    const rpc = vi.fn();
+    mocks.createClient.mockResolvedValue({ rpc });
+
+    const formData = new FormData();
+    formData.set("sessionId", sessionId);
+    const result = await drawGoForceSelection({}, formData);
+
+    expect(result).toEqual({ error: message });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(mocks.reportFailure).not.toHaveBeenCalled();
   });
 });

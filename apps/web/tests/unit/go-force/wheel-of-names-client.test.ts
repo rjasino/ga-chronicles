@@ -71,7 +71,10 @@ describe("Wheel of Names client", () => {
       ),
     );
 
-    await expect(spinWheelOfNames(entries)).rejects.toThrow(/not in the current game pool/i);
+    await expect(spinWheelOfNames(entries)).rejects.toMatchObject({
+      message: expect.stringMatching(/not in the current game pool/i),
+      reason: "invalid_winner",
+    });
   });
 
   it("rejects a winner title that does not match its ID", async () => {
@@ -89,7 +92,10 @@ describe("Wheel of Names client", () => {
       ),
     );
 
-    await expect(spinWheelOfNames(entries)).rejects.toThrow(/winner title did not match/i);
+    await expect(spinWheelOfNames(entries)).rejects.toMatchObject({
+      message: expect.stringMatching(/winner title did not match/i),
+      reason: "invalid_winner",
+    });
   });
 
   it("keeps a validated winner when the animation is malformed", async () => {
@@ -190,6 +196,9 @@ describe("Wheel of Names client", () => {
     vi.stubEnv("WHEEL_OF_NAMES_API_KEY", "wheel-test-key");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Unavailable", { status: 503 })));
 
-    await expect(spinWheelOfNames(entries)).rejects.toThrow(/could not complete the spin/i);
+    await expect(spinWheelOfNames(entries)).rejects.toMatchObject({
+      message: expect.stringMatching(/could not complete the spin/i),
+      reason: "availability",
+    });
   });
 });
