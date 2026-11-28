@@ -4,11 +4,13 @@
 
 **Created**: 2026-11-28
 
-**Status**: Draft
+**Completed**: 2026-11-28
+
+**Status**: Done
 
 **Input**: User description: "Create a fallback feature when wheelofnames if unreachable. this is to prevent the game for not proceeding as wheelofnames is cannot be use. The way to do it is to pre randomize the remaining list, and then pop each element from the randomize list or array. This feature can be toggle in the settings during the game or even before the start so we can facilitate the game even without relying on wheelofnames."
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Toggle fallback draw mode in settings before or during a game (Priority: P1)
 
@@ -69,7 +71,7 @@ Whenever fallback drawing is active, the system pre-randomizes the active round'
 - What happens when two facilitators or repeated draw actions trigger simultaneously while in fallback mode? Only one game is popped and opened for voting; duplicate draws are prevented while a ballot is open.
 - What happens to the annual eligible-game list when games are popped from the fallback queue? Only the active round's remaining list is reduced; the annual eligible-game list remains unchanged.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -85,13 +87,13 @@ Whenever fallback drawing is active, the system pre-randomizes the active round'
 - **FR-010**: The system MUST clearly indicate to the facilitator when fallback mode is active or when an automatic fallback draw occurred due to Wheel of Names being unreachable.
 - **FR-011**: Each fallback draw and its resulting votes MUST be recorded in the session history identically to a Wheel of Names draw.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Fallback Draw Setting**: A session-level configuration toggle indicating whether draws should bypass Wheel of Names and use the local pre-randomized queue directly.
 - **Randomized Draw Queue**: An ordered, pre-shuffled sequence of the active round's remaining un-drawn games from which one game is popped per draw.
 - **Active Round Remaining Games**: The set of games eligible for the current Go Force round that have not yet been drawn in that round.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
