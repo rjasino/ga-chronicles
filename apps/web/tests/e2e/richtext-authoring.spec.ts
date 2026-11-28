@@ -22,7 +22,9 @@ test("contributors can author a rich article with an inline image and preview it
   const editor = page.getByRole("textbox", { name: "Article body" });
   await editor.click();
   await page.getByRole("button", { name: "Heading 2" }).click();
+  await expect(editor).toBeFocused();
   await page.keyboard.type("Small teams, big moods");
+  await expect(editor.getByRole("heading", { level: 2, name: "Small teams, big moods" })).toBeVisible();
   await page.keyboard.press("Enter");
   await page.keyboard.type("An opening paragraph for readers.");
   await page.keyboard.press("Enter");
