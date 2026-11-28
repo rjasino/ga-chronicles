@@ -64,6 +64,7 @@ export async function saveGoForceVotingSettings(_state: AdminActionState, formDa
     finalBallotSeconds: formData.get("finalBallotSeconds"),
     finalBallotTimed: formData.get("finalBallotTimed") === "on",
     minimumRoundThreeGoVoters: formData.get("minimumRoundThreeGoVoters"),
+    wheelFallbackEnabled: formData.get("wheelFallbackEnabled") === "on",
   });
   if (!parsed.success) {
     return {
@@ -81,6 +82,7 @@ export async function saveGoForceVotingSettings(_state: AdminActionState, formDa
       final_ballot_seconds: parsed.data.finalBallotSeconds,
       final_ballot_timed: parsed.data.finalBallotTimed,
       minimum_round_three_go_voters: parsed.data.minimumRoundThreeGoVoters,
+      wheel_fallback_enabled: parsed.data.wheelFallbackEnabled,
       updated_by: session.userId,
     })
     .eq("id", true)

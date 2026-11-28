@@ -51,6 +51,12 @@ export const goForceVotingSettingsSchema = z.object({
   finalBallotSeconds: z.coerce.number().int().min(5).max(600),
   finalBallotTimed: z.boolean(),
   minimumRoundThreeGoVoters: z.coerce.number().int().min(1).max(64),
+  wheelFallbackEnabled: z.boolean().default(false),
+});
+
+export const setWheelFallbackSchema = z.object({
+  sessionId: z.uuid("Choose a valid Go Force session."),
+  wheelFallbackEnabled: z.boolean(),
 });
 
 export const pageVisibilitySchema = z.object({

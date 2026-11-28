@@ -55,12 +55,14 @@ function VotingSettingsForm({
   finalBallotSeconds,
   finalBallotTimed,
   minimumRoundThreeGoVoters,
+  wheelFallbackEnabled,
 }: {
   roundVotingSeconds: number;
   roundVotingTimed: boolean;
   finalBallotSeconds: number;
   finalBallotTimed: boolean;
   minimumRoundThreeGoVoters: number;
+  wheelFallbackEnabled: boolean;
 }) {
   const [state, action, pending] = useActionState(
     saveGoForceVotingSettings,
@@ -105,6 +107,11 @@ function VotingSettingsForm({
           max={64}
           defaultValue={minimumRoundThreeGoVoters}
           required
+        />
+        <Checkbox
+          name="wheelFallbackEnabled"
+          defaultChecked={wheelFallbackEnabled}
+          label="Use pre-randomized fallback instead of Wheel of Names"
         />
       </div>
       <p className="m-0 text-[.88rem] text-muted">
@@ -515,6 +522,7 @@ export function GoForceAdminControls({ data }: { data: GoForceAdminData }) {
               finalBallotSeconds={data.settings.final_ballot_seconds}
               finalBallotTimed={data.settings.final_ballot_timed}
               minimumRoundThreeGoVoters={data.settings.minimum_round_three_go_voters}
+              wheelFallbackEnabled={data.settings.wheel_fallback_enabled}
             />
           </section>
         </div>

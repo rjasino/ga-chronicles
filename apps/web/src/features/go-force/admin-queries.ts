@@ -27,7 +27,7 @@ export async function getGoForcePageSettings(): Promise<GoForcePageSettings> {
   const { data } = await supabase
     .from("go_force_page_settings")
     .select(
-      "id,page_visible,round_voting_seconds,round_voting_timed,final_ballot_seconds,final_ballot_timed,minimum_round_three_go_voters,updated_by,updated_at",
+      "id,page_visible,round_voting_seconds,round_voting_timed,final_ballot_seconds,final_ballot_timed,minimum_round_three_go_voters,wheel_fallback_enabled,updated_by,updated_at",
     )
     .eq("id", true)
     .maybeSingle();
@@ -40,6 +40,7 @@ export async function getGoForcePageSettings(): Promise<GoForcePageSettings> {
       final_ballot_seconds: 10,
       final_ballot_timed: true,
       minimum_round_three_go_voters: 2,
+      wheel_fallback_enabled: false,
       updated_by: null,
       updated_at: new Date(0).toISOString(),
     }
@@ -89,7 +90,7 @@ export async function getGoForceAdminData(): Promise<GoForceAdminData> {
       supabase
         .from("go_force_page_settings")
         .select(
-          "id,page_visible,round_voting_seconds,round_voting_timed,final_ballot_seconds,final_ballot_timed,minimum_round_three_go_voters,updated_by,updated_at",
+          "id,page_visible,round_voting_seconds,round_voting_timed,final_ballot_seconds,final_ballot_timed,minimum_round_three_go_voters,wheel_fallback_enabled,updated_by,updated_at",
         )
         .eq("id", true)
         .maybeSingle(),
@@ -166,6 +167,7 @@ export async function getGoForceAdminData(): Promise<GoForceAdminData> {
         final_ballot_seconds: 10,
         final_ballot_timed: true,
         minimum_round_three_go_voters: 2,
+        wheel_fallback_enabled: false,
         updated_by: null,
         updated_at: new Date(0).toISOString(),
       },
