@@ -163,7 +163,7 @@ export async function getSessionView(sessionId: string): Promise<SessionView | n
       .order("display_order", { ascending: true }),
     supabase
       .from("go_force_rounds")
-      .select("*")
+      .select("id,session_id,round_number,status,go_limit,started_at,ended_at,created_at")
       .eq("session_id", sessionId)
       .order("round_number", { ascending: true }),
     shouldLoadFinalBallotVotes

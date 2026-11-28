@@ -4,14 +4,17 @@
 
 **Created**: 2026-11-24
 
-**Status**: Draft
+**Completed**: 2026-11-24
+
+**Status**: Done
 
 **Input**: User description: "Create the following features: - can add new player mid game
+
 - add realtime update with user action
 - make color coding on no-go and go vote
 - on admin side, add a card for the list of games that will move to next round and how many vote for it"
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Add a player during a live session (Priority: P1)
 
@@ -87,7 +90,7 @@ An admin reviews a session card listing games that have qualified to advance and
 - No games in a completed round receive a “go” vote; the admin card shows no games advancing and the existing round-ending behavior remains in effect.
 - A player uses a display mode that does not distinguish colors; “go” and “no-go” remain distinguishable by text and other visual cues.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -104,14 +107,14 @@ An admin reviews a session card listing games that have qualified to advance and
 - **FR-011**: The admin card MUST NOT present an open ballot's votes as a finalized advancement result.
 - **FR-012**: Adding a player MUST preserve the existing Go Force vote, advancement, round, and results rules; expected vote opportunities for that player begin when they join and do not include earlier closed ballots.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Session Participant**: A player on a live session roster, including when they joined and which voting opportunities are available to them.
 - **Game Vote**: A participant's “go” or “no-go” choice for a selected game, with the existing ballot status and round context.
 - **Session Update**: A committed change to the roster, vote, ballot, or session progression that relevant users need to see.
 - **Round Advancement Summary**: The games with closed ballots that qualify to advance, their “go” vote counts, and whether advancement is provisional or confirmed.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

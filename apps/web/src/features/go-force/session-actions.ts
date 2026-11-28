@@ -8,6 +8,7 @@ import { canManageGoForce, isGoForceAdmin, isGoForceGameMaster } from "@/feature
 import {
   addSessionParticipantSchema,
   createSessionSchema,
+  setWheelFallbackSchema,
 } from "@/features/go-force/admin-schemas";
 import { withKnownGoForceFailure } from "@/features/go-force/action-failures";
 import { publishGoForceSessionUpdate } from "@/features/go-force/realtime-broadcast";
@@ -17,6 +18,7 @@ export type SessionActionState = {
   errorId?: string;
   success?: string;
   sessionId?: string;
+  wheelFallbackEnabled?: boolean;
 };
 
 export async function createGoForceSession(
@@ -177,4 +179,45 @@ export async function deleteReadyGoForceSession(
 
   refresh();
   return { success: "Ready session removed." };
+}
+
+export async function setGoForceWheelFallback(
+  _state: SessionActionState,
+  formData: FormData,
+): Promise<SessionActionState> {
+  const session = await getVerifiedSession();
+  if (!session) return { error: "Sign in to update draw settings." };
+
+  const rawEnabled = formData.get("wheelFallbackEnabled");
+  const parsed = setWheelFallbackSchema.safeParse({
+    sessionId: formData.get("sessionId"),
+    wheelFallbackEnabled: rawEnabled === "true" || rawEnabled === "on",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Choose a valid Go Force session." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("go_force_set_wheel_fallback", {
+    target_session: parsed.data.sessionId,
+    fallback_enabled: parsed.data.wheelFallbackEnabled,
+  });
+  if (error) {
+    return withKnownGoForceFailure(
+      error,
+      "go-force.session.wheel-fallback",
+      "The draw mode setting could not be updated.",
+      { sessionId: parsed.data.sessionId },
+    );
+  }
+
+  const enabled = Boolean(data);
+  await publishGoForceSessionUpdate(parsed.data.sessionId);
+  return {
+    sessionId: parsed.data.sessionId,
+    wheelFallbackEnabled: enabled,
+    success: enabled
+      ? "Fallback draw mode enabled. Draws will use the pre-randomized queue."
+      : "Wheel of Names mode enabled.",
+  };
 }

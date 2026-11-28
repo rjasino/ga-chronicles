@@ -38,6 +38,7 @@ const data = {
     final_ballot_seconds: 10,
     final_ballot_timed: true,
     minimum_round_three_go_voters: 2,
+    wheel_fallback_enabled: false,
     updated_by: null,
     updated_at: "2025-01-01T00:00:00.000Z",
   },

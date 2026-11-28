@@ -18,7 +18,11 @@ import {
   drawGoForceSelection,
   type GameActionState,
 } from "@/features/go-force/game-actions";
-import { startGoForceSession, type SessionActionState } from "@/features/go-force/session-actions";
+import {
+  setGoForceWheelFallback,
+  startGoForceSession,
+  type SessionActionState,
+} from "@/features/go-force/session-actions";
 import {
   closeGoForceFinalBallot,
   type BallotActionState,
@@ -58,14 +62,58 @@ function StartSessionForm({ sessionId }: { sessionId: string }) {
   );
 }
 
+function WheelFallbackToggleForm({
+  sessionId,
+  enabled,
+}: {
+  sessionId: string;
+  enabled: boolean;
+}) {
+  const [state, action, pending] = useActionState(
+    setGoForceWheelFallback,
+    {} satisfies SessionActionState,
+  );
+  const onSubmit = useGoForceLocalMutation(pending);
+  const currentEnabled = state.wheelFallbackEnabled ?? enabled;
+
+  return (
+    <form className="form-stack border border-line bg-paper p-4" action={action} onSubmit={onSubmit}>
+      <input type="hidden" name="sessionId" value={sessionId} />
+      <input type="hidden" name="wheelFallbackEnabled" value={currentEnabled ? "false" : "true"} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="m-0 font-semibold">
+            Draw mode:{" "}
+            {currentEnabled ? "Pre-randomized fallback queue" : "Wheel of Names (with auto-fallback)"}
+          </p>
+          <p className="m-0 mt-1 text-[.88rem] text-muted">
+            {currentEnabled
+              ? "Draws pop one game at a time from a pre-randomized list of remaining games without calling Wheel of Names."
+              : "Uses Wheel of Names first and automatically falls back to the pre-randomized remaining list if Wheel of Names is unreachable."}
+          </p>
+        </div>
+        <Button purpose="secondary" pending={pending}>
+          {currentEnabled ? "Switch to Wheel of Names" : "Use fallback queue"}
+        </Button>
+      </div>
+      {state.error && <Message tone="error">{state.error}</Message>}
+      {state.success && <Message tone="success">{state.success}</Message>}
+    </form>
+  );
+}
+
 function DrawForm({
   sessionId,
   disabled,
+  wheelFallbackEnabled,
   onDrawStateChange,
+  onFallbackDraw,
 }: {
   sessionId: string;
   disabled: boolean;
+  wheelFallbackEnabled: boolean;
   onDrawStateChange: (active: boolean) => void;
+  onFallbackDraw: (notice: string | undefined) => void;
 }) {
   const [state, action, pending] = useActionState(
     drawGoForceSelection,
@@ -78,6 +126,13 @@ function DrawForm({
   useEffect(() => {
     if (!pending && state.error) onDrawStateChange(false);
   }, [onDrawStateChange, pending, state.error]);
+
+  useEffect(() => {
+    if (!pending && state.selectionId && state.fallbackUsed) {
+      onDrawStateChange(false);
+      onFallbackDraw(state.success);
+    }
+  }, [onDrawStateChange, onFallbackDraw, pending, state.fallbackUsed, state.selectionId, state.success]);
 
   const openVoting = () => {
     if (!state.gameId || commitStarted.current) return;
@@ -102,6 +157,14 @@ function DrawForm({
       }
     });
   };
+
+  if (state.selectionId && state.fallbackUsed) {
+    return (
+      <div className="grid gap-3" aria-live="polite">
+        {state.success && <Message tone="success">{state.success}</Message>}
+      </div>
+    );
+  }
 
   if (state.gameId) {
     return (
@@ -135,12 +198,19 @@ function DrawForm({
   }
 
   return (
-    <form className="form-stack" action={action} onSubmit={() => onDrawStateChange(true)}>
+    <form
+      className="form-stack"
+      action={action}
+      onSubmit={() => {
+        onFallbackDraw(undefined);
+        onDrawStateChange(true);
+      }}
+    >
       <input type="hidden" name="sessionId" value={sessionId} />
       {state.error && <RouletteReveal status="error" error={state.error} />}
-      {pending && <RouletteReveal status="pending" />}
+      {pending && !wheelFallbackEnabled && <RouletteReveal status="pending" />}
       <Button purpose="primary" pending={pending} disabled={disabled}>
-        Spin the roulette
+        {wheelFallbackEnabled ? "Draw next game (Fallback)" : "Spin the roulette"}
       </Button>
     </form>
   );
@@ -279,6 +349,7 @@ export function FacilitatorSession({
   canAddParticipants: boolean;
 }) {
   const [drawInProgress, setDrawInProgress] = useState(false);
+  const [fallbackNotice, setFallbackNotice] = useState<string>();
   const {
     session,
     participants,
@@ -343,7 +414,13 @@ export function FacilitatorSession({
               <li key={participant.account_id}>{participant.display_name_snapshot}</li>
             ))}
           </ol>
-          <StartSessionForm sessionId={session.id} />
+          <div className="grid gap-4">
+            <WheelFallbackToggleForm
+              sessionId={session.id}
+              enabled={session.wheel_fallback_enabled}
+            />
+            <StartSessionForm sessionId={session.id} />
+          </div>
         </section>
       )}
 
@@ -359,9 +436,16 @@ export function FacilitatorSession({
             {remainingGames.length} game{remainingGames.length === 1 ? "" : "s"} left to select in
             this round.
           </p>
+          <div className="my-4">
+            <WheelFallbackToggleForm
+              sessionId={session.id}
+              enabled={session.wheel_fallback_enabled}
+            />
+          </div>
 
           {currentSelection ? (
             <div className="mt-4 grid gap-4">
+              {fallbackNotice && <Message tone="success">{fallbackNotice}</Message>}
               <div className="border-l-4 border-blue bg-paper px-4 py-3">
                 <p className="m-0 text-[.75rem] font-bold tracking-[.06em] text-red uppercase">
                   Voting open
@@ -398,7 +482,9 @@ export function FacilitatorSession({
             <DrawForm
               sessionId={session.id}
               disabled={remainingGames.length === 0}
+              wheelFallbackEnabled={session.wheel_fallback_enabled}
               onDrawStateChange={setDrawInProgress}
+              onFallbackDraw={setFallbackNotice}
             />
           )}
 

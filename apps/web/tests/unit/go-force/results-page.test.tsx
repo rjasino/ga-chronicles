@@ -47,6 +47,7 @@ const results = {
     goty_year: 2025,
     game_master_id: "10000000-0000-4000-8000-000000000001",
     status: "complete",
+    wheel_fallback_enabled: false,
     started_at: null,
     final_ballot_deadline_at: null,
     completed_at: "2025-01-02T00:00:00.000Z",

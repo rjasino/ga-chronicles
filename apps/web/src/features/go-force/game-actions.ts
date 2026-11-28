@@ -20,11 +20,54 @@ export type GameActionState = {
   animation?: string;
   animationFormat?: "gif" | "webp";
   animationDurationMs?: number;
+  fallbackUsed?: boolean;
+  fallbackReason?: "manual" | "unreachable";
 };
 
 const COMMIT_FALLBACK = "The game could not be committed. Please retry.";
 const VOTE_FALLBACK = "Your vote could not be recorded.";
 const CLOSE_FALLBACK = "The selection could not be closed.";
+
+async function drawWithFallback(
+  sessionId: string,
+  fallbackReason: "manual" | "unreachable",
+): Promise<GameActionState> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("go_force_draw_fallback_selection", {
+    target_session: sessionId,
+  });
+  if (error) {
+    return withKnownGoForceFailure(
+      error,
+      "go-force.selection.fallback-draw",
+      "The fallback draw could not be completed. Please retry.",
+      { sessionId, fallbackReason },
+    );
+  }
+
+  const row = data as { selectionId?: string; gameId?: string; title?: string } | null;
+  if (!row?.selectionId || !row?.gameId) {
+    return failureResult({
+      operation: "go-force.selection.fallback-draw-confirm",
+      error: new Error("Fallback draw returned no selection."),
+      message: "The fallback draw could not be completed. Please retry.",
+      context: { sessionId, fallbackReason },
+    });
+  }
+
+  await publishGoForceSessionUpdate(sessionId);
+  return {
+    selectionId: row.selectionId,
+    gameId: row.gameId,
+    title: row.title ?? "Selected game",
+    fallbackUsed: true,
+    fallbackReason,
+    success:
+      fallbackReason === "unreachable"
+        ? "Wheel of Names was unreachable. Drew the next game from the pre-randomized fallback queue and opened voting."
+        : "Drew the next game from the pre-randomized fallback queue and opened voting.",
+  };
+}
 
 export async function drawGoForceSelection(
   _state: GameActionState,
@@ -60,22 +103,28 @@ export async function drawGoForceSelection(
     return { error: "Every game in this round has already been selected." };
   }
 
+  if (view.session.wheel_fallback_enabled) {
+    return drawWithFallback(sessionId, "manual");
+  }
+
   let spin;
   try {
     spin = await spinWheelOfNames(
       view.remainingGames.map((game) => ({ id: game.id, text: game.title_snapshot })),
     );
   } catch (error) {
-    if (error instanceof WheelOfNamesError) {
-      return failureResult({
-        operation: "go-force.selection.spin",
+    if (error instanceof WheelOfNamesError && error.reason === "availability") {
+      reportFailure({
+        operation: "go-force.selection.spin-fallback",
         error,
-        message: error.requestId
-          ? `${error.message} (Reference ${error.requestId})`
-          : error.message,
-        context: { sessionId },
+        context: {
+          sessionId,
+          requestId: error.requestId,
+        },
       });
+      return drawWithFallback(sessionId, "unreachable");
     }
+    if (error instanceof WheelOfNamesError) return { error: error.message };
     return failureResult({
       operation: "go-force.selection.spin",
       error,

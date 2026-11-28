@@ -45,6 +45,7 @@ const playerView = {
     goty_year: 2090,
     game_master_id: "10000000-0000-4000-8000-000000000003",
     status: "live",
+    wheel_fallback_enabled: false,
     started_at: now,
     final_ballot_deadline_at: null,
     completed_at: null,

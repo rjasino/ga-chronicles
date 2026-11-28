@@ -39,6 +39,7 @@ export type GoForcePageSettings = {
   final_ballot_seconds: number;
   final_ballot_timed: boolean;
   minimum_round_three_go_voters: number;
+  wheel_fallback_enabled: boolean;
   updated_by: string | null;
   updated_at: string;
 };
@@ -48,6 +49,7 @@ export type GoForceSession = {
   goty_year: number;
   game_master_id: string;
   status: GoForceSessionStatus;
+  wheel_fallback_enabled: boolean;
   started_at: string | null;
   final_ballot_deadline_at: string | null;
   completed_at: string | null;
